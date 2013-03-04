@@ -91,15 +91,15 @@ public class QueryLikelihoodRankerwithJMSmoothing extends Ranker{
 		return (getFrequid(term, did) / getTotalNumberOfWordsInaDocument(did));
 	}
 
-	public Vector<ScoredDocument> runquery(String query) {
+	@Override
+	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
 		Vector<ScoredDocument> retrieval_results = new Vector<ScoredDocument>();
 		for (int i = 0; i < _indexer.numDocs(); ++i) {
-			retrieval_results.add(runquery(query, i));
-
+			retrieval_results.add(runquery(query.toString(), i));
 		}
 		return sortScoredDocumentAsPerScore(retrieval_results);
 	}
-
+		
 	public ScoredDocument runquery(String query, int did) {
 
 		// Build query vector
@@ -135,11 +135,6 @@ public class QueryLikelihoodRankerwithJMSmoothing extends Ranker{
 
 	public double getLMPScore(Query query, Document d) {
 		return runquery(query.toString(), d._docid).get_score();
-	}
-	@Override
-	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	}	
 
 }

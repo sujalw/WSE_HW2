@@ -30,7 +30,6 @@ class Evaluator {
 	public static class DocumentRelevances {
 		private static Map<Integer, Double> relevances = new HashMap<Integer, Double>();
 		private static Map<Integer, Double> scoredRelevances = new HashMap<Integer, Double>();
-
 		
 		public static Map<Integer, Double> getRelevances() {
 			return relevances;
@@ -72,11 +71,19 @@ class Evaluator {
 		}
 		
 		public double getScoredRelevanceForDoc(int docid) {
-			return scoredRelevances.get(docid);
+			if(scoredRelevances.containsKey(docid)) {
+				return scoredRelevances.get(docid);
+			} else {
+				return 1.0;
+			}
 		}
 
 		public double getBinaryRelevanceForDoc(int docid) {
-			return relevances.get(docid);
+			if(relevances.containsKey(docid)) {
+				return relevances.get(docid);
+			} else {
+				return 0.0;
+			}
 		}
 
 		private static double convertToBinaryRelevance(String grade) {
@@ -159,6 +166,7 @@ class Evaluator {
 
 	public static void readRelevanceJudgments(String judgeFile,
 			Map<String, DocumentRelevances> judgements) throws IOException {
+		
 		String line = null;
 		BufferedReader reader = new BufferedReader(new FileReader(judgeFile));
 		while ((line = reader.readLine()) != null) {
@@ -211,7 +219,7 @@ class Evaluator {
 			s.close();
 		}
 		reader.close();
-		System.out.println("Accuracy: " + Double.toString(RR / N));
+		//System.out.println("Accuracy: " + Double.toString(RR / N));
 	}
 
 	public static Vector<Vector<String>> getData() {
@@ -249,7 +257,9 @@ class Evaluator {
 				++N;
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.err.println("Error:" + e.getMessage());
+			
 		}
 
 		if (RR != 0.0 && N != 0.0)

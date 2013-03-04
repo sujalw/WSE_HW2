@@ -68,16 +68,18 @@ public abstract class Ranker {
       case FAVORITE:
         return new RankerFavorite(options, arguments, indexer);
       case COSINE:
+    	  System.out.println("in cosine");
         return new CosineRanker(options, arguments, indexer);        
       case QL:
+    	  System.out.println("in QL");
         return new QueryLikelihoodRankerwithJMSmoothing(options, arguments, indexer);
       case PHRASE:
         return new PhraseRanker(options, arguments, indexer);
       case NUMVIEWS:
+    	  System.out.println("in numviews");
     	  return new NumViewsRanker(options, arguments, indexer);
       case LINEAR:
-        // Plug in your linear Ranker
-        break;
+    	  return new LinearRanker(options, arguments, indexer);
       case NONE:
         // Fall through intended
       default:

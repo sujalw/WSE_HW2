@@ -16,6 +16,7 @@ public class NumViewsRanker extends Ranker {
 		      CgiArguments arguments, Indexer indexer) {
 		super(options, arguments, indexer);
 		_options = options;
+		_indexer = indexer;
 	    System.out.println("Using Ranker: " + this.getClass().getSimpleName());		
 	}
 
@@ -23,11 +24,13 @@ public class NumViewsRanker extends Ranker {
 	@Override
 	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
 		// TODO : return only numResults no. of documents. Currently it returns all documents
+		System.out.println("inside runQuery of numviews");
 		return createNumViewsReverseSorted();
 	}
 	
 	public static HashMap<Integer, Integer> createDiDViewMap() {
 		int numberofDocs = _indexer._numDocs;
+		System.out.println("numdocs = " + numberofDocs);
 		HashMap<Integer, Integer> didView = new HashMap<Integer, Integer>();
 		for (int i = 0; i < numberofDocs; i++) {
 			didView.put(i, _indexer.getDoc(i).getNumViews());

@@ -50,7 +50,8 @@ public class LinearRanker extends Ranker {
 
 		}
 
-		// retrieval_results = Utilities.getSorted(retrieval_results);
+		//retrieval_results = Utilities.getSorted(retrieval_results);
+		retrieval_results = Utilities.sortScoredDocumentAsPer(retrieval_results);
 		return retrieval_results;
 	}
 
