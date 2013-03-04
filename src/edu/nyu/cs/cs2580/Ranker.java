@@ -68,14 +68,13 @@ public abstract class Ranker {
       case FAVORITE:
         return new RankerFavorite(options, arguments, indexer);
       case COSINE:
-        // Plug in your cosine Ranker
-        break;
+        return new CosineRanker(options, arguments, indexer);        
       case QL:
-        // Plug in your QL Ranker
-        break;
+        return new QueryLikelihoodRankerwithJMSmoothing(options, arguments, indexer);
       case PHRASE:
-        // Plug in your phrase Ranker
-        break;
+        return new PhraseRanker(options, arguments, indexer);
+      case NUMVIEWS:
+    	  return new NumViewsRanker(options, arguments, indexer);
       case LINEAR:
         // Plug in your linear Ranker
         break;

@@ -133,6 +133,9 @@ public class QueryLikelihoodRankerwithJMSmoothing extends Ranker{
 		return new ScoredDocument(d, score);
 	}
 
+	public double getLMPScore(Query query, Document d) {
+		return runquery(query.toString(), d._docid).get_score();
+	}
 	@Override
 	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
 		// TODO Auto-generated method stub

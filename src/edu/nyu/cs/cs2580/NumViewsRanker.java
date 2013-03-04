@@ -58,5 +58,11 @@ public class NumViewsRanker extends Ranker {
 
 		return vsd;
 	}
+	
+	public double getNumViewsScore(Document d) {
+		int did = d._docid;
+		
+		return createDiDViewMap().get(did);
+	}
 
 }

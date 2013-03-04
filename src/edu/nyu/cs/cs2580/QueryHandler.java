@@ -42,6 +42,7 @@ class QueryHandler implements HttpHandler {
       PHRASE,
       QL,
       LINEAR,
+      NUMVIEWS
     }
     public RankerType _rankerType = RankerType.NONE;
     

@@ -42,7 +42,7 @@ public class PhraseRanker extends Ranker {
 		Vector<ScoredDocument> retrieval_results = new Vector<ScoredDocument>();
 		double noOfDocs = _indexer.numDocs();
 		for (int i = 0; i < noOfDocs; ++i) {
-			retrieval_results.add(scoreDocument(query, i, n));
+			retrieval_results.add(scoreDocument(query, _indexer.getDoc(i), n));
 
 		}
 
@@ -50,14 +50,13 @@ public class PhraseRanker extends Ranker {
 		return retrieval_results;
 	}
 
-	public ScoredDocument scoreDocument(Query query, int did, int n) {
+	public ScoredDocument scoreDocument(Query query, Document d, int n) {
 
-		double score = getPhraseScore(query, did, n);
-		Document d = _indexer.getDoc(did);
+		double score = getPhraseScore(query, d, n);
 		return new ScoredDocument(d, score);
 	}
 
-	public double getPhraseScore(Query query, int did, int n) {
+	public double getPhraseScore(Query query, Document d, int n) {
 		// Build query vector
 		
 		// Build query vector
@@ -68,9 +67,6 @@ public class PhraseRanker extends Ranker {
 
 		// get n-gram terms for query vector
 		qv = Utilities.getNGram(qv, n);
-
-		// Get the document vector.
-		Document d = _indexer.getDoc(did);
 
 		// get n-gram terms
 		Vector<String> docTokensTitle = ((DocumentFull) d).getConvertedTitleTokens();

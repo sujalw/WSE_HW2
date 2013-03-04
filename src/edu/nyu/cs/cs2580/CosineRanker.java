@@ -47,8 +47,7 @@ public class CosineRanker extends Ranker {
 
 		// Build query vector
 		query.processQuery();
-		Vector<String> qv = query._tokens;
-		
+		Vector<String> qv = query._tokens;		
 		
 		// Get the document vector.
 		// get unigram terms
