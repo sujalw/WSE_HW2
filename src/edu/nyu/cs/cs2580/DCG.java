@@ -20,6 +20,7 @@ import edu.nyu.cs.cs2580.Evaluator.DocumentRelevances;
  */
 
 public class DCG {
+	
 	Map<String, DocumentRelevances> judgments = new HashMap<String, DocumentRelevances>();
 	Vector<Vector<String>> data = new Vector<Vector<String>>();
 
