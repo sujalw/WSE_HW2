@@ -34,7 +34,7 @@ public class CosineRanker extends Ranker {
 			retrieval_results.add(scoreDocument(query, _indexer.getDoc(i)));
 		}
 
-		// retrieval_results = Utilities.getSorted(retrieval_results);
+		retrieval_results = Utilities.sortScoredDocumentAsPer(retrieval_results);
 		return retrieval_results;
 	}
 
