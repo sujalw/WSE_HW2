@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -52,9 +53,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	// Final index file
 	String _indexFile = null;
 
+	String _titleFile = "data/title.idx";
+
 	int _intermediateIndexFiles = 0;
 
-	Vector<String> _docTitles = new Vector<String>();	
+	Vector<String> _docTitles = new Vector<String>();
 
 	// Stores all Document (not body vectors) in memory.
 	private Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
@@ -73,6 +76,14 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 		File corpusDir = new File(corpusDirPath);
 		for (File corpusFile : corpusDir.listFiles()) {
+			
+			if(corpusFile.getName().equals("2011")) {
+				Document doc = Jsoup.parse(corpusFile, "UTF-8");
+				String contents = doc.text();
+				System.out.println(contents);
+			} else {
+				continue;
+			}
 
 			Document doc = Jsoup.parse(corpusFile, "UTF-8");
 			String contents = doc.text();
@@ -99,12 +110,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		loadIndex();
 
 		// write the current state to the index file
-		String indexFile = _options._indexPrefix + "/corpus_complete.idx";
-		System.out.println("Store index to: " + indexFile);
-		ObjectOutputStream writer = new ObjectOutputStream(
-				new FileOutputStream(indexFile));
-		writer.writeObject(this);
-		writer.close();
+		/*
+		 * String indexFile = _options._indexPrefix + "/corpus_complete.idx";
+		 * System.out.println("Store index to: " + indexFile);
+		 * ObjectOutputStream writer = new ObjectOutputStream( new
+		 * FileOutputStream(indexFile)); writer.writeObject(this);
+		 * writer.close();
+		 */
 	}
 
 	private void mergeIndex() {
@@ -137,6 +149,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	}
 
 	private void sortFileNames(File[] files) {
+		
+		if(files == null || files.length == 0) {
+			return;
+		}
+		
 		Arrays.sort(files, new Comparator<File>() {
 			public int compare(File f1, File f2) {
 				String f1Name = f1.getName();
@@ -152,10 +169,20 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	}
 
 	private void mergeIndexFiles(String file1, String file2) {
+		
+		if(file1==null || file2==null || file1.trim().length()==0 || file2.trim().length()==0) {
+			return;
+		}
+		
 		System.out.println("processing : " + file1 + ", " + file2);
 		try {
 			File f1 = new File(_options._indexPrefix + "/" + file1);
 			File f2 = new File(_options._indexPrefix + "/" + file2);
+			
+			if(!f1.exists() || !f2.exists()) {
+				return;
+			}
+			
 			String f3Name = _options._indexPrefix + "/"
 					+ System.currentTimeMillis() + ".idx";
 
@@ -263,6 +290,10 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	}
 
 	private void writeIndexToFile() throws IOException {
+		
+		if(_invertedIndex == null) {
+			return;
+		}
 
 		String indexFileNew = _options._indexPrefix + "/"
 				+ _intermediateIndexFiles + ".idx";
@@ -306,6 +337,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 * @param content
 	 */
 	private void processDocument(String content, String title, int docId) {
+		
+		if(content == null || title == null || docId < 0) {
+			return;
+		}
+		
 		System.out.println("Processing : " + docId);
 		Set<String> uniqueTerms = new TreeSet<String>(getStemmed(content));
 		for (String t : uniqueTerms) {
@@ -320,16 +356,20 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				++_totalTermFrequency;
 			}
 		}
-		
-		DocumentIndexed docIndexed = new DocumentIndexed(docId);
-		docIndexed.setTitle(title);
-		_documents.add(docIndexed);
-		System.out.println("added to _documents : " + title);
-		System.out.println("_documents.soze() = " + _documents.size());
-		_docTitles.add(title);
+
+		// DocumentIndexed docIndexed = new DocumentIndexed(docId);
+		// docIndexed.setTitle(title);
+		// _documents.add(docIndexed);
+		// _docTitles.add(title);
+		Utilities.writeToFile(_titleFile, title + "\n", true);
 	}
 
 	private Vector<String> getStemmed(String contents) {
+		
+		if(contents == null || contents.trim().length() == 0) {
+			return null;
+		}
+		
 		Vector<String> stemmedContents = new Vector<String>();
 
 		Scanner s = new Scanner(contents.toLowerCase());
@@ -351,7 +391,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 	@Override
 	public void loadIndex() {
-		
+
 		_invertedIndex = new LinkedHashMap<String, TreeSet<Integer>>();
 
 		System.out.println("Loading index from : " + _indexFile);
@@ -376,8 +416,14 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 					}
 				}
 			}
-
 			br.close();
+
+			// load titles info
+			br = new BufferedReader(new FileReader(_titleFile));
+			while ((line = br.readLine()) != null) {
+				_docTitles.add(line);
+			}
+
 			System.out.println("Loading completed");
 		} catch (NumberFormatException e) {
 			// TODO Auto-generated catch block
@@ -418,7 +464,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	}
 
 	@Override
-	public DocumentIndexed getDoc(int docid) {
+	public DocumentIndexed getDoc(int docid) {		
 		return _documents.get(docid);
 	}
 
@@ -427,57 +473,74 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 */
 	@Override
 	public DocumentIndexed nextDoc(Query query, int docid) {
-		DocumentIndexed nextDocument = null;
 
 		if (query == null || query._query.trim().length() == 0) {
 			return null;
 		}
 
-		Vector<String> queryProcessed = getStemmed(query._query);
+		// remove duplicate terms in query
+		Set<String> queryProcessed = new TreeSet<String>(getStemmed(query._query));
+
 		int[] docIds = new int[queryProcessed.size()];
 
-		// TODO: in future sort query terms in ascending order of their
-		// frequencies in corpus. searching for documents with rare terms first
-		// will be more efficient searching
-
-		// perform conjunctive retrieval
-		// TODO: remove duplicate terms in query
-		for (int qTermIndex = 0; qTermIndex < queryProcessed.size(); qTermIndex++) {
-			docIds[qTermIndex] = nextDoc(queryProcessed.get(qTermIndex), docid);
-		}
+		// perform conjunctive retrieval		
+		int qTermNo = 0;
+		for(String qTerm : queryProcessed) {
+			docIds[qTermNo++] = nextDoc(qTerm, docid);
+		}			
 
 		while (!isSame(docIds) && continueSearch(docIds)) {
 			int newDocId = getMax(docIds) - 1;
+			docIds = new int[queryProcessed.size()];
 
-			for (int qTermIndex = 0; qTermIndex < queryProcessed.size(); qTermIndex++) {
-				docIds[qTermIndex] = nextDoc(queryProcessed.get(qTermIndex),
-						newDocId);
-			}
+			qTermNo = 0;
+			for(String qTerm : queryProcessed) {
+				docIds[qTermNo++] = nextDoc(qTerm, newDocId);
+			}			
 		}
 
-		if(docIds[0] != -1) {
-			nextDocument = new DocumentIndexed(docIds[0]);
-		}		
-
-		return nextDocument;
+		if(!continueSearch(docIds) || !isSame(docIds)) {
+			return null;
+		}
+		
+		// At this point, all the entries in the array are same
+		return new DocumentIndexed(docIds[0]);
 	}
 
+	/**
+	 * 
+	 * @param list
+	 * @return maximum integer from the given list
+	 */
 	private int getMax(int[] list) {
+		
+		if(list == null || list.length == 0) {
+			return -1;
+		}
+		
 		int max = -1;
 
 		if (list.length > 0) {
 			max = list[0];
 			for (int i : list) {
-				if (max < i) {
-					max = i;
-				}
+				max = Math.max(max, i);
 			}
 		}
 
 		return max;
 	}
 
+	/**
+	 * 
+	 * @param docIds
+	 * @return true if all numbers in the given list are same. Else returns false
+	 */
 	private boolean isSame(int[] docIds) {
+		
+		if(docIds == null || docIds.length == 0) {
+			return false;
+		}
+		
 		if (docIds.length > 0) {
 			int first = docIds[0];
 			for (int i = 1; i < docIds.length; i++) {
@@ -491,9 +554,14 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}
 	}
 
+	/**
+	 * 
+	 * @param docIds
+	 * @return
+	 */
 	private boolean continueSearch(int[] docIds) {
 
-		if (docIds.length <= 0) {
+		if (docIds == null || docIds.length <= 0) {
 			return false;
 		}
 
@@ -507,7 +575,18 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		return true;
 	}
 
+	/**
+	 * 
+	 * @param term
+	 * @param docid
+	 * @return Next docId containing the given term
+	 */
 	private int nextDoc(String term, int docid) {
+		
+		if(term == null || term.trim().length() == 0) {
+			return -1;
+		}
+		
 		int nextDocId = -1;
 		Integer[] docIdList = null;
 
@@ -517,24 +596,44 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			docList.toArray(docIdList);
 
 			// perform search for nextdocid on this array
-			nextDocId = search(docid, docIdList);
+			nextDocId = search(docid, docIdList, true);
 		}
 
 		return nextDocId;
 	}
 
-	private int search(int currentDocId, Integer[] docIdList) {
-		int nextDocId = -1;
-				
-		int begin = 0, end = docIdList.length - 1;
-		
-		// Through galloping, find a slot for binary search
-		
+	private int search(int currentDocId, Integer[] docIdList, boolean galloping) {
 
-		nextDocId = binarySearch(docIdList, begin, end,
-				currentDocId);
+		if (docIdList == null || docIdList.length == 0
+				|| docIdList[docIdList.length - 1] < currentDocId) {
+			return -1;
+		}
 
-		return nextDocId;
+		if (docIdList[0] > currentDocId) {
+			return docIdList[0];
+		}
+
+		int low = 0, high = 0;
+		int jump = 1;
+
+		if(galloping) {
+			// Through galloping, find a slot for binary search
+			while ((high < docIdList.length) && docIdList[high] <= currentDocId) {
+
+				low = high;
+				// increase step size
+				jump = jump << 1;
+				high += jump;
+			}
+
+			if (high > (docIdList.length - 1)) {
+				high = docIdList.length - 1;
+			}
+		} else {
+			high = docIdList.length - 1;
+		}
+
+		return binarySearch(docIdList, low, high, currentDocId);
 	}
 
 	/*
@@ -543,6 +642,14 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 */
 	private int binarySearch(Integer[] list, int begin, int end, int current) {
 
+		if(list==null || list.length==0) {
+			return -1;
+		}
+		
+		if(begin<0 || end<0 || begin>=list.length || end>=list.length) {
+			return -1;
+		}
+		
 		// if last number is less than current then return -1
 		if (list[end] <= current) {
 			return -1;
@@ -584,36 +691,50 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		return 0;
 	}
 
+	private void testNextDoc(IndexerInvertedDoconly iido) {
+		long start, end;
+
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		
+		String queryStr;		
+		
+		try {
+			while(!(queryStr = br.readLine()).equals("quit")) {
+				Query q = new Query(queryStr);		
+				int totalResults = 0;
+				start = System.currentTimeMillis();
+				DocumentIndexed di = iido.nextDoc(q, -1);
+				if(di == null) {
+					System.out.println("No documents found !!!");
+				}
+				while (di != null) {
+					totalResults++;
+					System.out.println(di._docid + " - " + iido._docTitles.get(di._docid));
+					di = iido.nextDoc(q, di._docid);
+				}
+				end = System.currentTimeMillis();
+				System.out.println("Total results = " + totalResults);
+				System.out.println("Search time = " + (end - start));
+				System.out.println("#####################################");								
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}	
+
 	public IndexerInvertedDoconly() {
-		/**
-		 * Integer[] l = new Integer[]{1, 5, 9, 23, 56, 78, 94}; int next =
-		 * binarySearch(l, 0, l.length-1, 60); System.out.println("next = " +
-		 * next);
-		 */
 
 		try {
 			Options options = new Options("conf/engine.conf");
 			IndexerInvertedDoconly iido = new IndexerInvertedDoconly(options);
 			long start = System.currentTimeMillis();
-			 //iido.constructIndex();
-			// iido.mergeIndex();
-			 iido.loadIndex();
-			//iido.loadSavedState();
+			//iido.constructIndex();
+			iido.loadIndex();
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
 			
-			for(String term : iido._invertedIndex.keySet()) {
-				System.out.println("term = " + term);
-			}
-
-			 Query q = new Query("much music video mybloglog");
-			 DocumentIndexed di = iido.nextDoc(q, -1);
-			 while(di != null) {
-				 System.out.println("did = " + di._docid);
-				 di = iido.nextDoc(q, di._docid);
-			 }
-			 
-
+			testNextDoc(iido);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
