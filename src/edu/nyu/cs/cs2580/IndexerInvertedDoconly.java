@@ -77,13 +77,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		File corpusDir = new File(corpusDirPath);
 		for (File corpusFile : corpusDir.listFiles()) {
 			
-			if(corpusFile.getName().equals("2011")) {
-				Document doc = Jsoup.parse(corpusFile, "UTF-8");
-				String contents = doc.text();
-				System.out.println(contents);
-			} else {
-				continue;
-			}
+			//if(corpusFile.getName().equals("2011")) {
+				//Document doc = Jsoup.parse(corpusFile, "UTF-8");
+				//String contents = doc.text();
+				//System.out.println(contents);
+			//} else {
+				//continue;
+			//}
 
 			Document doc = Jsoup.parse(corpusFile, "UTF-8");
 			String contents = doc.text();
@@ -366,7 +366,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 	private Vector<String> getStemmed(String contents) {
 		
-		if(contents == null || contents.trim().length() == 0) {
+		if(contents == null) {
 			return null;
 		}
 		
@@ -715,7 +715,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				end = System.currentTimeMillis();
 				System.out.println("Total results = " + totalResults);
 				System.out.println("Search time = " + (end - start));
-				System.out.println("#####################################");								
+				System.out.println("#####################################");
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
