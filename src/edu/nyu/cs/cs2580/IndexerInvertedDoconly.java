@@ -524,7 +524,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 		// remove duplicate terms in query
 		Set<String> queryProcessed = new TreeSet<String>(
-				getStemmed(query._query));
+				Utilities.getStemmed(query._query));
 
 		int[] docIds = new int[queryProcessed.size()];
 
