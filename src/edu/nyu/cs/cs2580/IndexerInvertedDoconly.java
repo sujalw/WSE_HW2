@@ -347,13 +347,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 * Loads only the index file which may contain the input term
 	 * @param term
 	 */
-	public void loadIndex1(String term) {
-		_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
-
+	public void loadIndex(String term) {
+		//_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
+				
 		String indexFile = _options._indexPrefix + "/" + term.charAt(0)
 				+ ".idx";
 
-		System.out.println("Loading index from : " + indexFile);
+		//System.out.println("Loading index from : " + indexFile);
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(indexFile));
 			String line = "";
@@ -390,7 +390,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				}
 			}
 
-			System.out.println("Loading done...");
+			//System.out.println("Loading done...");
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -404,7 +404,10 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 	@Override
 	public void loadIndex() {
-		FilenameFilter indexFilesFilter = new FilenameFilter() {
+		BufferedReader br;
+		String line;
+		
+		/*FilenameFilter indexFilesFilter = new FilenameFilter() {
 			@Override
 			public boolean accept(File arg0, String arg1) {
 				return arg1.endsWith(".idx");
@@ -415,38 +418,37 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		System.out.println("Loading indexes from : " + _options._indexPrefix);
 
 		File[] indexFiles = indexDir.listFiles(indexFilesFilter);
-		BufferedReader br;
+		
+		String[] docInfo;
+		Map<Integer, Integer> docInfoMap;
+		Scanner scanner;
+		String token;
+		String[] doc_count;
 
 		for (File indexFile : indexFiles) {
+			System.out.println("loading : " + indexFile.getName());
 			try {
 				br = new BufferedReader(new FileReader(indexFile));
-				String line = "";
+				line = "";
 
 				while ((line = br.readLine()) != null) {
 					if (line.trim().length() != 0) {
-						Scanner scanner = new Scanner(line);
+						scanner = new Scanner(line);
 						scanner.useDelimiter("[" + _termDoclistDelim + "\n]");
 
-						String token = scanner.next();
+						token = scanner.next();
 
 						// create new map entry for current term
-						Map<Integer, Integer> docInfoMap = new HashMap<Integer, Integer>();
+						docInfoMap = new HashMap<Integer, Integer>();
 						_invertedIndex.put(token, docInfoMap);
 
 						// build docInfoMap
-						String[] docInfo = scanner.next().split(_doclistDelim);
+						docInfo = scanner.next().split(_doclistDelim);
 						for (String doc : docInfo) {
-							String[] doc_count = doc.split(_docCountDelim);
+							doc_count = doc.split(_docCountDelim);							
+							docInfoMap.put(Integer.valueOf(doc_count[0]), Integer.valueOf(doc_count[1]));
 
-							if (docInfoMap.containsKey(Integer
-									.valueOf(doc_count[0]))) {
-								docInfoMap.put(Integer.valueOf(doc_count[0]),
-										docInfoMap.get(Integer
-												.valueOf(doc_count[1])) + 1);
-							} else {
-								docInfoMap
-										.put(Integer.valueOf(doc_count[0]), 1);
-							}
+							_totalTermFrequency += Integer.valueOf(doc_count[1]);
 						}
 					}
 				}
@@ -456,6 +458,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}
 		
 		System.out.println("Loading index done ...");
+		*/
 
 		// load titles file
 		_titleFile = _options._indexPrefix + "/title.tit";
@@ -463,7 +466,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 		try {
 			br = new BufferedReader(new FileReader(_titleFile));
-			String line;
 			while ((line = br.readLine()) != null) {
 				_docTitles.add(line);
 			}
@@ -520,6 +522,26 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 		if (query == null || query._query.trim().length() == 0) {
 			return null;
+		}
+		
+		System.out.println("Searching ... ");
+		if(docid == -1) {
+			// It means this is first call to nextDoc for given query.
+			// load necessary indices
+			
+			Map<Character, Byte> chars = new HashMap<Character, Byte>();
+			query.processQuery();
+			Vector<String> tokens = query._tokens;
+			for(String token : tokens) {
+				if(token.trim().length() != 0) {
+					chars.put(token.charAt(0), null);
+				}				
+			}
+			
+			_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
+			for(Character c : chars.keySet()) {
+				loadIndex(String.valueOf(c).toLowerCase());
+			}
 		}
 
 		// remove duplicate terms in query
@@ -738,13 +760,44 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 	@Override
 	public int corpusTermFrequency(String term) {
+		int corpusTermFreq = 0;
+		
+		if(_invertedIndex.containsKey(term)) {
+			Map<Integer, Integer> docList = _invertedIndex.get(term);
+			for(Integer docId : docList.keySet()) {
+				corpusTermFreq += docList.get(docId);
+			}
+		}
+		
+		return corpusTermFreq;
+	}
+	
+	@Override
+	public int documentTermFrequency(String term, String url) {
 		return 0;
 	}
 
-	@Override
-	public int documentTermFrequency(String term, String url) {
-		SearchEngine.Check(false, "Not implemented!");
-		return 0;
+	/**
+	 * 
+	 * @param term
+	 * @param docId
+	 * @return count of given term in document with given docId
+	 */
+	public int documentTermFrequency(String term, int docId) {
+		int documentTermFreq = 0;
+
+		// check whether the given term is present in the index
+		if(_invertedIndex.containsKey(term)) {
+			Map<Integer, Integer> docList = _invertedIndex.get(term);
+			
+			// check whether the given term is present in the document with given docId
+			if(docList.containsKey(docId)) {
+				// return the count of term in the document
+				documentTermFreq = docList.get(docId);
+			}
+		}
+		
+		return documentTermFreq;
 	}
 
 	private void testNextDoc(IndexerInvertedDoconly iido) {
@@ -792,10 +845,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
 
-			// int cnt = iido._invertedIndex.get("xz").size();
-			// System.out.println("cnt = " + cnt);
+			//int cnt = iido._invertedIndex.get("xypolia").size();
+			//System.out.println("cnt = " + cnt);
 
 			testNextDoc(iido);
+			
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
 		}
