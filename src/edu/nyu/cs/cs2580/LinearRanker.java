@@ -1,7 +1,6 @@
 package edu.nyu.cs.cs2580;
 
 import java.util.HashMap;
-import java.util.Scanner;
 import java.util.Vector;
 
 import edu.nyu.cs.cs2580.QueryHandler.CgiArguments;

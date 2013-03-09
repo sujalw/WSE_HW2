@@ -12,9 +12,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 /**
  * Evaluator for HW1.

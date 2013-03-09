@@ -26,16 +26,22 @@ public class CosineRanker extends Ranker {
 	@Override
 	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
 		
-		// TODO : return only numResults no. of documents. Currently it returns all documents
-		
 		Vector<ScoredDocument> retrieval_results = new Vector<ScoredDocument>();
 		double noOfDocs = _indexer.numDocs();
 		for (int i = 0; i < noOfDocs; ++i) {
 			retrieval_results.add(scoreDocument(query, _indexer.getDoc(i)));
 		}
 
+		// TODO: implement efficient sort that sorts only top numResults documents
 		retrieval_results = Utilities.sortScoredDocumentAsPer(retrieval_results);
-		return retrieval_results;
+		
+		if(numResults >= retrieval_results.size()) {
+			return retrieval_results;
+		} else if(numResults <= 0) {
+			return null;
+		} else {
+			return new Vector<ScoredDocument>(retrieval_results.subList(0, numResults));
+		}		
 	}
 
 	public ScoredDocument scoreDocument(Query query, Document doc) {
