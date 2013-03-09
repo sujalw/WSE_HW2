@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Vector;
 
 public class Utilities {
@@ -315,5 +316,30 @@ public class Utilities {
 		}
 
 		return tfIdf;
+	}
+	
+	public static Vector<String> getStemmed(String contents) {
+
+		if (contents == null) {
+			return null;
+		}
+
+		Vector<String> stemmedContents = new Vector<String>();
+
+		Scanner s = new Scanner(contents.toLowerCase());
+		s.useDelimiter("[^a-zA-Z0-9]");
+		while (s.hasNext()) {
+			String term = s.next();
+
+			Stemmer stemmer = new Stemmer();
+			stemmer.add(term.toCharArray(), term.length());
+			stemmer.stem(); // code of stemmer is modified to compute just
+							// step1()
+
+			stemmedContents.add(stemmer.toString());
+		}
+		s.close();
+
+		return stemmedContents;
 	}
 }

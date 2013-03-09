@@ -53,9 +53,9 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 	Vector<String> _docTitles = new Vector<String>();
 
-	final char _termDoclistDelim = ';';
-	final char _docCountDelim = ':';
-	final char _doclistDelim = ' ';
+	final String _termDoclistDelim = ";";
+	final String _docCountDelim = ":";
+	final String _doclistDelim = " ";
 
 	// Stores all Document (not body vectors) in memory.
 	private Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
@@ -97,9 +97,9 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}
 
 		// write last batch of info
-		writeIndexToFile();		
+		writeIndexToFile();
 	}
-	
+
 	private void mergeIndexFiles(String file1, String file2) {
 
 		if (file1 == null || file2 == null || file1.trim().length() == 0
@@ -215,15 +215,15 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				bw.close();
 
 				// delete old files
-				f1.delete(); 
-				f2.delete(); 
+				f1.delete();
+				f2.delete();
 
 				new File(f3Name).renameTo(f1);
 			} else if (!f1.exists()) {
 				// here f2 should exist
 
 				// just rename f2 to f1
-				f2.renameTo(f1); 
+				f2.renameTo(f1);
 			}
 
 		} catch (FileNotFoundException e) {
@@ -246,7 +246,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 		String term;
 		String indexFileNameOrig, indexFileNameTmp;
-		StringBuffer docIdsBuffer;
 		StringBuffer indexData;
 		char firstChar;
 
@@ -302,7 +301,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 			// merge old and new files. e.g. merge a.idx and a_tmp.idx -> a.idx
 			mergeIndexFiles(indexFileNameOrig, indexFileNameTmp);
-		}		
+		}
 	}
 
 	/**
@@ -318,7 +317,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}
 
 		System.out.println("Processing : " + docId);
-		Vector<String> terms = getStemmed(content);
+		Vector<String> terms = Utilities.getStemmed(content);
 		for (String t : terms) {
 			t = t.trim();
 			if (t.length() > 0) {
@@ -344,40 +343,137 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		Utilities.writeToFile(_titleFile, title + "\n", true);
 	}
 
-	private Vector<String> getStemmed(String contents) {
-
-		if (contents == null) {
-			return null;
-		}
-
-		Vector<String> stemmedContents = new Vector<String>();
-
-		Scanner s = new Scanner(contents.toLowerCase());
-		s.useDelimiter("[^a-zA-Z0-9]");
-		while (s.hasNext()) {
-			String term = s.next();
-
-			Stemmer stemmer = new Stemmer();
-			stemmer.add(term.toCharArray(), term.length());
-			stemmer.stem(); // code of stemmer is modified to compute just
-							// step1()
-
-			stemmedContents.add(stemmer.toString());
-		}
-		s.close();
-
-		return stemmedContents;
-	}
-
-	/*
-	 * public void loadIndex(String term) { _invertedIndex = new
-	 * LinkedHashMap<String, TreeSet<Integer>>();
-	 * 
-	 * _indexFile = _options._indexPrefix + "/" + term.charAt(0) + ".idx"; }
+	/**
+	 * Loads only the index file which may contain the input term
+	 * @param term
 	 */
+	public void loadIndex1(String term) {
+		_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
+
+		String indexFile = _options._indexPrefix + "/" + term.charAt(0)
+				+ ".idx";
+
+		System.out.println("Loading index from : " + indexFile);
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(indexFile));
+			String line = "";
+
+			while ((line = br.readLine()) != null) {
+				if (line.trim().length() != 0) {
+					Scanner scanner = new Scanner(line);
+					scanner.useDelimiter("[" + _termDoclistDelim + "\n]");
+
+					String token = scanner.next();
+
+					// create new map entry for current term
+					Map<Integer, Integer> docInfoMap = new HashMap<Integer, Integer>();
+					_invertedIndex.put(token, docInfoMap);
+
+					// build docInfoMap
+					String[] docInfo = scanner.next().split(_doclistDelim);
+					for (String doc : docInfo) {
+						String[] doc_count = doc.split(_docCountDelim);
+
+						if (docInfoMap.containsKey(Integer
+								.valueOf(doc_count[0]))) {
+							docInfoMap.put(Integer.valueOf(doc_count[0]),
+									docInfoMap.get(Integer
+											.valueOf(doc_count[1])) + 1);
+						} else {
+							docInfoMap.put(Integer.valueOf(doc_count[0]), 1);
+						}
+					}
+
+					if (token.equals(term)) {
+						break;
+					}
+				}
+			}
+
+			System.out.println("Loading done...");
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 
 	@Override
 	public void loadIndex() {
+		FilenameFilter indexFilesFilter = new FilenameFilter() {
+			@Override
+			public boolean accept(File arg0, String arg1) {
+				return arg1.endsWith(".idx");
+			}
+		};
+
+		File indexDir = new File(_options._indexPrefix);
+		System.out.println("Loading indexes from : " + _options._indexPrefix);
+
+		File[] indexFiles = indexDir.listFiles(indexFilesFilter);
+		BufferedReader br;
+
+		for (File indexFile : indexFiles) {
+			try {
+				br = new BufferedReader(new FileReader(indexFile));
+				String line = "";
+
+				while ((line = br.readLine()) != null) {
+					if (line.trim().length() != 0) {
+						Scanner scanner = new Scanner(line);
+						scanner.useDelimiter("[" + _termDoclistDelim + "\n]");
+
+						String token = scanner.next();
+
+						// create new map entry for current term
+						Map<Integer, Integer> docInfoMap = new HashMap<Integer, Integer>();
+						_invertedIndex.put(token, docInfoMap);
+
+						// build docInfoMap
+						String[] docInfo = scanner.next().split(_doclistDelim);
+						for (String doc : docInfo) {
+							String[] doc_count = doc.split(_docCountDelim);
+
+							if (docInfoMap.containsKey(Integer
+									.valueOf(doc_count[0]))) {
+								docInfoMap.put(Integer.valueOf(doc_count[0]),
+										docInfoMap.get(Integer
+												.valueOf(doc_count[1])) + 1);
+							} else {
+								docInfoMap
+										.put(Integer.valueOf(doc_count[0]), 1);
+							}
+						}
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		System.out.println("Loading index done ...");
+
+		// load titles file
+		_titleFile = _options._indexPrefix + "/title.tit";
+		System.out.println("Loading titles from : " + _titleFile);
+
+		try {
+			br = new BufferedReader(new FileReader(_titleFile));
+			String line;
+			while ((line = br.readLine()) != null) {
+				_docTitles.add(line);
+			}
+			_numDocs = _docTitles.size();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("Loading titles done ...");
+
 		/*
 		 * _invertedIndex = new LinkedHashMap<String, TreeSet<Integer>>();
 		 * 
@@ -435,6 +531,9 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		// perform conjunctive retrieval
 		int qTermNo = 0;
 		for (String qTerm : queryProcessed) {
+			// load appropriate index
+			// loadIndex(qTerm);
+
 			docIds[qTermNo++] = nextDoc(qTerm, docid);
 		}
 
@@ -444,6 +543,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 			qTermNo = 0;
 			for (String qTerm : queryProcessed) {
+				// load appropriate index
+				// loadIndex(qTerm);
 				docIds[qTermNo++] = nextDoc(qTerm, newDocId);
 			}
 		}
@@ -532,21 +633,28 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 * @return Next docId containing the given term
 	 */
 	private int nextDoc(String term, int docid) {
-		/*
-		 * if (term == null || term.trim().length() == 0) { return -1; }
-		 * 
-		 * int nextDocId = -1; Integer[] docIdList = null;
-		 * 
-		 * if (_invertedIndex.containsKey(term)) { TreeSet<Integer> docList =
-		 * _invertedIndex.get(term); docIdList = new Integer[docList.size()];
-		 * docList.toArray(docIdList);
-		 * 
-		 * // perform search for nextdocid on this array nextDocId =
-		 * search(docid, docIdList, true); }
-		 * 
-		 * return nextDocId;
-		 */
-		return 0;
+
+		if (term == null || term.trim().length() == 0) {
+			return -1;
+		}
+
+		int nextDocId = -1;
+		Integer[] docIdList = null;
+
+		if (_invertedIndex.containsKey(term)) {
+			Map<Integer, Integer> docList = _invertedIndex.get(term);
+			docIdList = new Integer[docList.size()];
+
+			Set<Integer> docListSorted = new TreeSet<Integer>(docList.keySet());
+			docListSorted.toArray(docIdList);
+			// docList.toArray(docIdList);
+
+			// perform search for nextdocid on this array nextDocId =
+			nextDocId = search(docid, docIdList, true);
+		}
+
+		return nextDocId;
+
 	}
 
 	private int search(int currentDocId, Integer[] docIdList, boolean galloping) {
@@ -678,35 +786,21 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			Options options = new Options("conf/engine.conf");
 			IndexerInvertedDoconly iido = new IndexerInvertedDoconly(options);
 			long start = System.currentTimeMillis();
-			iido.constructIndex();
-			// iido.loadIndex(); 
+			// iido.constructIndex();
+			iido.loadIndex();
+			// iido.loadIndex("xz");
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
 
-			// testNextDoc(iido);
+			// int cnt = iido._invertedIndex.get("xz").size();
+			// System.out.println("cnt = " + cnt);
+
+			testNextDoc(iido);
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
 		}
 
 		// testMerge();
-	}
-
-	private static void testFileFilter() {
-		String dir = "/home/sujal/expt";
-		final String ext = ".idx";
-		FilenameFilter indexFilesFilter = new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				if (name.endsWith(ext)) {
-					return true;
-				} else {
-					return false;
-				}
-			}
-		};
-		File corpusDir = new File(dir);
-		int no = corpusDir.listFiles(indexFilesFilter).length;
-		System.out.println("no = " + no);
 	}
 
 	private void testMerge() {
@@ -720,14 +814,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		} catch (Exception e) {
 
 		}
-	}
-
-	private static void testParsing() {
-		String line = "0;2:17 3:1 4:1 \n";
-		Scanner s = new Scanner(line);
-		s.useDelimiter("[;\n]");
-		System.out.println(s.next());
-
 	}
 
 	public static void main(String[] args) {
