@@ -57,40 +57,38 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 	// Stores all Document (not body vectors) in memory.
 	private Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
+	private Map<String, Integer> _docIdUriMap = new HashMap<String, Integer>();
 
 	public IndexerInvertedDoconly(Options options) {
 		super(options);
 		System.out.println("Using Indexer: " + this.getClass().getSimpleName());
+		
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 	}
 
 	@Override
 	public void constructIndex() throws IOException {
-		String corpusDirPath = _options._corpusPrefix;
-		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
+		String corpusDirPath = _options._corpusPrefix;		
 		
 		// delete previously created index
-		Utilities.deleteFilesInDir(_options._indexPrefix);
+		//Utilities.deleteFilesInDir(_options._indexPrefix);
 
 		System.out.println("Constructing index from: " + corpusDirPath);
 
-		StringBuffer ss = new StringBuffer();
 		File corpusDir = new File(corpusDirPath);		
 		for (File corpusFile : corpusDir.listFiles()) {
+									
 			Document doc = Jsoup.parse(corpusFile, "UTF-8");
 			
 			String contents = doc.text();
 
-			System.out.println("Processing : " + _numDocs + " : " + corpusFile.getName());
-			
-			
-			ss.append("Processing : " + _numDocs + " : " + corpusFile.getName());
-			ss.append("\n");
+			System.out.println("Processing : " + _numDocs + " : " + corpusFile.getName());			
 			
 			processDocument(contents, doc, _numDocs);
 
 			if ((_numDocs + 1) % _maxFiles == 0) {
 				// write index to intermediate file
-				writeIndexToFile();
+				//writeIndexToFile();
 				Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 				_intermediateIndexFiles++;
 
@@ -102,12 +100,10 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			_numDocs++;
 		}
 		
-		Utilities.writeToFile(_options._indexPrefix + "/log.txt", ss.toString(), false);
-		
 		System.out.println("no of docs processed = " + _numDocs);
 
 		// write last batch of info
-		writeIndexToFile();
+		//writeIndexToFile();
 		Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 	}
 
@@ -324,6 +320,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	private void processDocument(String content, Document doc, int docId) {
 
 		if (content == null || doc == null || docId < 0) {
+			System.out.println("null");
 			return;
 		}
 		
@@ -341,8 +338,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				} else {
 					_invertedIndex.get(t).put(docId, 1);
 				}
-
-				++_totalTermFrequency;
 			}
 		}
 		
@@ -353,12 +348,16 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		String title = doc.title().trim();
 		title = title.length()==0 ? uri : title;
 		
+		int wordsInDoc = terms.size();
+		
 		docInfo.append(docId);
 		docInfo.append(_docInfoDelim);		
 		docInfo.append(uri);
 		docInfo.append(_docInfoDelim);
 		docInfo.append(title);
-		docInfo.append("\n");		
+		docInfo.append(_docInfoDelim);
+		docInfo.append(wordsInDoc); // total words in the document
+		docInfo.append("\n");
 	}
 	
 	public void loadIndex(Query query) {
@@ -406,16 +405,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 					// build docInfoMap
 					String[] docInfo = scanner.next().split(_doclistDelim);
 					for (String doc : docInfo) {
-						String[] doc_count = doc.split(_docCountDelim);
-
-						if (docInfoMap.containsKey(Integer
-								.valueOf(doc_count[0]))) {
-							docInfoMap.put(Integer.valueOf(doc_count[0]),
-									docInfoMap.get(Integer
-											.valueOf(doc_count[1])) + 1);
-						} else {
-							docInfoMap.put(Integer.valueOf(doc_count[0]), 1);
-						}
+						String[] doc_count = doc.split(_docCountDelim);						
+						docInfoMap.put(Integer.valueOf(doc_count[0]), Integer.valueOf(doc_count[1]));
 					}
 
 					if (token.equals(term)) {
@@ -440,7 +431,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	public void loadIndex() {
 		BufferedReader br;
 		String line;
-		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 		
 		/*FilenameFilter indexFilesFilter = new FilenameFilter() {
 			@Override
@@ -506,11 +496,16 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			
 			while ((line = br.readLine()) != null) {
 				info = line.split(_docInfoDelim);
-					
-				dIndexed = new DocumentIndexed(Integer.parseInt(info[0]));
+				
+				int dId = Integer.parseInt(info[0]);
+				dIndexed = new DocumentIndexed(dId);
 				dIndexed.setUrl(info[1]);
 				dIndexed.setTitle(info[2]);
-				_documents.add(dIndexed);
+				long totalWordsInDoc = Long.parseLong(info[3]);
+				dIndexed.setTotalWords(totalWordsInDoc);
+				_documents.add(dIndexed);								
+				_docIdUriMap.put(info[1], dId);
+				_totalTermFrequency += totalWordsInDoc;
 			}
 			_numDocs = _documents.size();
 		} catch (Exception e) {
@@ -608,7 +603,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}
 
 		// At this point, all the entries in the array are same
-		return new DocumentIndexed(docIds[0]);
+		//return new DocumentIndexed(docIds[0]);
+		return _documents.get(docIds[0]);
 	}
 
 	/**
@@ -806,6 +802,12 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	
 	@Override
 	public int documentTermFrequency(String term, String url) {
+		
+		if(_invertedIndex.containsKey(term)) {
+			int docId = _docIdUriMap.get(url);
+			return _invertedIndex.get(term).get(docId);
+		}
+		
 		return 0;
 	}
 
@@ -864,6 +866,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			e.printStackTrace();
 		}
 	}
+	
+	private void testRanker(IndexerInvertedDoconly indexer) {
+		RankerFavorite rf = new RankerFavorite(indexer._options, null, indexer);
+		Query q = new Query("adele");
+		Vector<ScoredDocument> results = rf.runQuery(q, 10);
+		
+	}
 
 	public IndexerInvertedDoconly() {
 
@@ -871,21 +880,18 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			Options options = new Options("conf/engine.conf");
 			IndexerInvertedDoconly iido = new IndexerInvertedDoconly(options);
 			long start = System.currentTimeMillis();
-			 //iido.constructIndex();
+			//iido.constructIndex();
 			iido.loadIndex();
 			// iido.loadIndex("xz");
 			//iido.testParse(iido);
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
 			
-			System.out.println("total docs loaded = " + iido._documents.size());
-			
-
 			//int cnt = iido._invertedIndex.get("xypolia").size();
 			//System.out.println("cnt = " + cnt);
 
-			testNextDoc(iido);
-			
+			//testNextDoc(iido);
+			//testRanker(iido);			
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
 		}
@@ -894,9 +900,10 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	}
 	
 	private void testParse(IndexerInvertedDoconly iido) {
-		File corpusFile = new File(iido._options._corpusPrefix + "/2011");
+		File corpusFile = new File(iido._options._corpusPrefix + "/The_X_Factor_(Australia)");
 		try {
 			Document doc = Jsoup.parse(corpusFile, "UTF-8");
+			System.out.println(doc.text());
 			//System.out.println("uri = " + doc.);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

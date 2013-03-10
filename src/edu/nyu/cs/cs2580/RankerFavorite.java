@@ -22,16 +22,15 @@ public class RankerFavorite extends Ranker {
 
 	@Override
 	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
-		Vector<DocumentIndexed> all = new Vector<DocumentIndexed>();
+		Vector<ScoredDocument> retrieval_results = new Vector<ScoredDocument>();
 		Vector<ScoredDocument> scoredDocs = new Vector<ScoredDocument>();
 
 		DocumentIndexed di = _indexer.nextDoc(query, -1);
 		while (di != null) {
-			all.add(di);
+			System.out.println("docid = " + di._docid);
+			retrieval_results.add(scoreDocument(query, di));
 			di = _indexer.nextDoc(query, di._docid);
-		}
-		
-		
+		}		
 
 		return null;
 	}
@@ -46,17 +45,38 @@ public class RankerFavorite extends Ranker {
 		double score = 0;
 
 		// Build query vector
-		query.processQuery();
+		//query.processQuery();
 		Vector<String> qv = Utilities.getStemmed(query._query);
 		
 		// get query term frequencies in the document
 		HashMap<String, Double> termFreqDoc = new HashMap<String, Double>();
 		for(String term : qv) {
-			termFreqDoc.put(term, new Double(_indexer.documentTermFrequency(term, null)));
+			if(term != null) {
+				termFreqDoc.put(term, new Double(_indexer.documentTermFrequency(term, d.getUrl())));
+			}
 		}
-		HashMap<String, Double> tfDoc = Utilities.getNormalizedVector(
-				termFreqDoc, 1d);
 		
+		HashMap<String, Double> tfDoc = Utilities.getNormalizedVector(termFreqDoc, 1d);
+		NormalizedTFIDF normTfIdf = new NormalizedTFIDF(null, _indexer);
+		HashMap<String, Double> idfDoc = normTfIdf.invDocFreqVector(tfDoc);
+		HashMap<String, Double> tfIdfDoc = Utilities.getTfIdf(tfDoc, idfDoc);
+		HashMap<String, Double> tfIdfDocNormalised = Utilities
+				.getNormalizedVector(tfIdfDoc, 2);
+		
+		HashMap<String, Double> termFreqQuery = Utilities.getTermFreq(qv);
+		HashMap<String, Double> tfQuery = Utilities.getNormalizedVector(
+				termFreqQuery, 1d);
+		HashMap<String, Double> idfQuery = normTfIdf.invDocFreqVector(tfQuery);
+		HashMap<String, Double> tfIdfQuery = Utilities.getTfIdf(tfQuery,
+				idfQuery);
+		HashMap<String, Double> tfIdfQueryNormalised = Utilities
+				.getNormalizedVector(tfIdfQuery, 2);
+
+		score = Utilities.getDotProduct(tfIdfDocNormalised,
+				tfIdfQueryNormalised);
+		
+		System.out.println("docid = " + d._docid);
+		System.out.println("score = " + score);
 		
 		/*
 		// Get the document vector.
