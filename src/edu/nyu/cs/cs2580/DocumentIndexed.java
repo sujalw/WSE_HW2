@@ -9,6 +9,8 @@ import java.io.Serializable;
 public class DocumentIndexed extends Document implements Serializable {
   private static final long serialVersionUID = 9184892508124423115L;
   
+  
+  
   public DocumentIndexed(int docid) {
     super(docid);
   }

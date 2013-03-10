@@ -1,6 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
@@ -132,7 +133,7 @@ public class Utilities {
 
 		return unitVec;
 	}
-
+	
 	/**
 	 * @author sujal
 	 * @param vec
@@ -341,5 +342,18 @@ public class Utilities {
 		s.close();
 
 		return stemmedContents;
+	}
+
+	public static void deleteFilesInDir(String dir) {
+		File directory = new File(dir);
+		if(! directory.exists()) {
+			return;
+		}
+		
+		File[] files = directory.listFiles();
+		for(File f : files) {
+			System.out.println("deleting : " + f.getName());
+			f.delete();			
+		}		
 	}
 }

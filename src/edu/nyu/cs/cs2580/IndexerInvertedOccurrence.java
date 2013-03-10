@@ -32,7 +32,7 @@ public class IndexerInvertedOccurrence extends Indexer {
    * In HW2, you should be using {@link DocumentIndexed}.
    */
   @Override
-  public Document nextDoc(Query query, int docid) {
+  public DocumentIndexed nextDoc(Query query, int docid) {
     return null;
   }
 

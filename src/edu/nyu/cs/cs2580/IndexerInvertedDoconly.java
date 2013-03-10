@@ -3,17 +3,12 @@ package edu.nyu.cs.cs2580;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -42,20 +37,23 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	// Store inverted index doconly with wordcount
-	Map<String, Map<Integer, Integer>> _invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
+	public Map<String, Map<Integer, Integer>> _invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
 
 	// Maximum no. of files to process in memory at a time
 	int _maxFiles = 500;
 
-	String _titleFile = null;// "data/title.idx";
+	String _docInfoFile = "docinfo.inf";// "data/title.idx";
 
 	int _intermediateIndexFiles = 0;
 
 	Vector<String> _docTitles = new Vector<String>();
+	
+	StringBuffer docInfo = new StringBuffer();
 
 	final String _termDoclistDelim = ";";
 	final String _docCountDelim = ":";
 	final String _doclistDelim = " ";
+	final String _docInfoDelim = ";";
 
 	// Stores all Document (not body vectors) in memory.
 	private Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
@@ -68,36 +66,49 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	@Override
 	public void constructIndex() throws IOException {
 		String corpusDirPath = _options._corpusPrefix;
-		_titleFile = _options._indexPrefix + "/title.tit";
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
+		
+		// delete previously created index
+		Utilities.deleteFilesInDir(_options._indexPrefix);
 
 		System.out.println("Constructing index from: " + corpusDirPath);
 
-		File corpusDir = new File(corpusDirPath);
+		StringBuffer ss = new StringBuffer();
+		File corpusDir = new File(corpusDirPath);		
 		for (File corpusFile : corpusDir.listFiles()) {
 			Document doc = Jsoup.parse(corpusFile, "UTF-8");
+			
 			String contents = doc.text();
-			String title = doc.title().trim();
 
-			if (title.length() == 0) {
-				title = corpusFile.getName();
-			}
-
-			processDocument(contents, title, _numDocs);
+			System.out.println("Processing : " + _numDocs + " : " + corpusFile.getName());
+			
+			
+			ss.append("Processing : " + _numDocs + " : " + corpusFile.getName());
+			ss.append("\n");
+			
+			processDocument(contents, doc, _numDocs);
 
 			if ((_numDocs + 1) % _maxFiles == 0) {
 				// write index to intermediate file
 				writeIndexToFile();
+				Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 				_intermediateIndexFiles++;
 
-				// flush the in memory index
+				// flush the in memory index and document info
 				_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
+				docInfo = new StringBuffer();
 			}
 
 			_numDocs++;
 		}
+		
+		Utilities.writeToFile(_options._indexPrefix + "/log.txt", ss.toString(), false);
+		
+		System.out.println("no of docs processed = " + _numDocs);
 
 		// write last batch of info
 		writeIndexToFile();
+		Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 	}
 
 	private void mergeIndexFiles(String file1, String file2) {
@@ -310,13 +321,12 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 * 
 	 * @param content
 	 */
-	private void processDocument(String content, String title, int docId) {
+	private void processDocument(String content, Document doc, int docId) {
 
-		if (content == null || title == null || docId < 0) {
+		if (content == null || doc == null || docId < 0) {
 			return;
 		}
-
-		System.out.println("Processing : " + docId);
+		
 		Vector<String> terms = Utilities.getStemmed(content);
 		for (String t : terms) {
 			t = t.trim();
@@ -335,12 +345,36 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				++_totalTermFrequency;
 			}
 		}
-
-		// DocumentIndexed docIndexed = new DocumentIndexed(docId);
-		// docIndexed.setTitle(title);
-		// _documents.add(docIndexed);
-		// _docTitles.add(title);
-		Utilities.writeToFile(_titleFile, title + "\n", true);
+		
+		String uri = doc.baseUri();
+		uri = uri==null ? "" : uri;
+		uri = new File(uri).getName();
+		
+		String title = doc.title().trim();
+		title = title.length()==0 ? uri : title;
+		
+		docInfo.append(docId);
+		docInfo.append(_docInfoDelim);		
+		docInfo.append(uri);
+		docInfo.append(_docInfoDelim);
+		docInfo.append(title);
+		docInfo.append("\n");		
+	}
+	
+	public void loadIndex(Query query) {
+		Map<Character, Byte> chars = new HashMap<Character, Byte>();
+		query.processQuery();
+		Vector<String> tokens = query._tokens;
+		for(String token : tokens) {
+			if(token.trim().length() != 0) {
+				chars.put(token.charAt(0), null);
+			}				
+		}
+		
+		_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
+		for(Character c : chars.keySet()) {
+			loadIndex(String.valueOf(c).toLowerCase());
+		}
 	}
 
 	/**
@@ -364,7 +398,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 					scanner.useDelimiter("[" + _termDoclistDelim + "\n]");
 
 					String token = scanner.next();
-
+					
 					// create new map entry for current term
 					Map<Integer, Integer> docInfoMap = new HashMap<Integer, Integer>();
 					_invertedIndex.put(token, docInfoMap);
@@ -406,6 +440,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	public void loadIndex() {
 		BufferedReader br;
 		String line;
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 		
 		/*FilenameFilter indexFilesFilter = new FilenameFilter() {
 			@Override
@@ -460,21 +495,29 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		System.out.println("Loading index done ...");
 		*/
 
-		// load titles file
-		_titleFile = _options._indexPrefix + "/title.tit";
-		System.out.println("Loading titles from : " + _titleFile);
+		// load doc info file
+		System.out.println("Loading documents info from : " + _docInfoFile);
 
 		try {
-			br = new BufferedReader(new FileReader(_titleFile));
+			br = new BufferedReader(new FileReader(_docInfoFile));
+			
+			String[] info;
+			DocumentIndexed dIndexed;
+			
 			while ((line = br.readLine()) != null) {
-				_docTitles.add(line);
+				info = line.split(_docInfoDelim);
+					
+				dIndexed = new DocumentIndexed(Integer.parseInt(info[0]));
+				dIndexed.setUrl(info[1]);
+				dIndexed.setTitle(info[2]);
+				_documents.add(dIndexed);
 			}
-			_numDocs = _docTitles.size();
+			_numDocs = _documents.size();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
-		System.out.println("Loading titles done ...");
+		System.out.println("Loading document info done ...");
 
 		/*
 		 * _invertedIndex = new LinkedHashMap<String, TreeSet<Integer>>();
@@ -523,30 +566,19 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		if (query == null || query._query.trim().length() == 0) {
 			return null;
 		}
-		
-		System.out.println("Searching ... ");
-		if(docid == -1) {
-			// It means this is first call to nextDoc for given query.
-			// load necessary indices
-			
-			Map<Character, Byte> chars = new HashMap<Character, Byte>();
-			query.processQuery();
-			Vector<String> tokens = query._tokens;
-			for(String token : tokens) {
-				if(token.trim().length() != 0) {
-					chars.put(token.charAt(0), null);
-				}				
-			}
-			
-			_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
-			for(Character c : chars.keySet()) {
-				loadIndex(String.valueOf(c).toLowerCase());
-			}
-		}
-
+				
 		// remove duplicate terms in query
 		Set<String> queryProcessed = new TreeSet<String>(
-				Utilities.getStemmed(query._query));
+		Utilities.getStemmed(query._query));
+				
+		if(docid == -1) {
+			// It means this is first call to nextDoc for given query.
+			
+			System.out.println("Searching ... ");
+			
+			// load necessary indices			
+			loadIndex(query);
+		}		
 
 		int[] docIds = new int[queryProcessed.size()];
 
@@ -819,7 +851,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				while (di != null) {
 					totalResults++;
 					System.out.println(di._docid + " - "
-							+ iido._docTitles.get(di._docid));
+							+ iido._documents.get(di._docid).getTitle());
 					di = iido.nextDoc(q, di._docid);
 				}
 				end = System.currentTimeMillis();
@@ -839,11 +871,15 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			Options options = new Options("conf/engine.conf");
 			IndexerInvertedDoconly iido = new IndexerInvertedDoconly(options);
 			long start = System.currentTimeMillis();
-			// iido.constructIndex();
+			 //iido.constructIndex();
 			iido.loadIndex();
 			// iido.loadIndex("xz");
+			//iido.testParse(iido);
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
+			
+			System.out.println("total docs loaded = " + iido._documents.size());
+			
 
 			//int cnt = iido._invertedIndex.get("xypolia").size();
 			//System.out.println("cnt = " + cnt);
@@ -855,6 +891,17 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}
 
 		// testMerge();
+	}
+	
+	private void testParse(IndexerInvertedDoconly iido) {
+		File corpusFile = new File(iido._options._corpusPrefix + "/2011");
+		try {
+			Document doc = Jsoup.parse(corpusFile, "UTF-8");
+			//System.out.println("uri = " + doc.);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void testMerge() {
