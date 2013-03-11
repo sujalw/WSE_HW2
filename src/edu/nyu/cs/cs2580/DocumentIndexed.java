@@ -10,6 +10,8 @@ public class DocumentIndexed extends Document implements Serializable {
 	private static final long serialVersionUID = 9184892508124423115L;
 
 	private long _totalWords = 0;
+	
+	
 
 	public DocumentIndexed(int docid) {
 		super(docid);

@@ -23,7 +23,7 @@ public class IndexerInvertedOccurrence extends Indexer {
   }
 
   @Override
-  public Document getDoc(int docid) {
+  public DocumentIndexed getDoc(int docid) {
     SearchEngine.Check(false, "Do NOT change, not used for this Indexer!");
     return null;
   }

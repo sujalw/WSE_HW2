@@ -41,7 +41,7 @@ public abstract class Indexer {
   // APIs for document retrieval.
 
   /**
-   * Random access to documents, used prominently in HW1. In HW2, this interface
+   * Random access to documents, used prominently in HW1. In HW2, this interfaceor just our implemented rankers
    * should only be used to retrieve intrinsic features of the document, not the
    * term features.
    *
@@ -60,7 +60,7 @@ public abstract class Indexer {
    * @return the next Document after {@code docid} satisfying {@code query} or
    * null if no such document exists.
    */
-  public abstract DocumentIndexed nextDoc(Query query, int docid);
+  public abstract Document nextDoc(Query query, int docid);
 
   // APIs for index construction and loading.
 

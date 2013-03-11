@@ -386,7 +386,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		String indexFile = _options._indexPrefix + "/" + term.charAt(0)
 				+ ".idx";
 
-		//System.out.println("Loading index from : " + indexFile);
+		System.out.println("Loading index from : " + indexFile);
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(indexFile));
 			String line = "";
@@ -415,7 +415,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				}
 			}
 
-			//System.out.println("Loading done...");
+			System.out.println("Loading done...");
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -431,6 +431,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	public void loadIndex() {
 		BufferedReader br;
 		String line;
+		
+		System.out.println("inside loadIndex of doconly");
 		
 		/*FilenameFilter indexFilesFilter = new FilenameFilter() {
 			@Override
@@ -580,9 +582,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		// perform conjunctive retrieval
 		int qTermNo = 0;
 		for (String qTerm : queryProcessed) {
-			// load appropriate index
-			// loadIndex(qTerm);
-
 			docIds[qTermNo++] = nextDoc(qTerm, docid);
 		}
 
@@ -592,8 +591,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 			qTermNo = 0;
 			for (String qTerm : queryProcessed) {
-				// load appropriate index
-				// loadIndex(qTerm);
 				docIds[qTermNo++] = nextDoc(qTerm, newDocId);
 			}
 		}
@@ -890,7 +887,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			//int cnt = iido._invertedIndex.get("xypolia").size();
 			//System.out.println("cnt = " + cnt);
 
-			//testNextDoc(iido);
+			testNextDoc(iido);
 			//testRanker(iido);			
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
