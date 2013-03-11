@@ -2,9 +2,7 @@ package edu.nyu.cs.cs2580;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.PriorityQueue;
-import java.util.Scanner;
 import java.util.Vector;
 
 import edu.nyu.cs.cs2580.QueryHandler.CgiArguments;
@@ -20,7 +18,7 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  */
 public class RankerFavorite extends Ranker {
 	
-	private double lambda = 0.0;
+	private double lambda = 0.5;
 
 	public RankerFavorite(Options options, CgiArguments arguments,
 			Indexer indexer) {
