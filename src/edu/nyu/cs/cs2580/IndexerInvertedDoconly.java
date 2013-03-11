@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -370,9 +372,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			}				
 		}
 		
+		query.processQuery();
+		SortedSet<String> qTerms = new TreeSet<String>();
+		qTerms.addAll(Utilities.getStemmed(query._query));
+		
 		_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
-		for(Character c : chars.keySet()) {
-			loadIndex(String.valueOf(c).toLowerCase());
+		for(String qTerm : qTerms) {			
+			loadIndex(qTerm);
 		}
 	}
 
@@ -385,7 +391,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 				
 		String indexFile = _options._indexPrefix + "/" + term.charAt(0)
 				+ ".idx";
-
+		
 		System.out.println("Loading index from : " + indexFile);
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(indexFile));
