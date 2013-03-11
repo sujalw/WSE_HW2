@@ -230,20 +230,21 @@ public class IndexerInvertedOccurrence extends Indexer {
 			while ((line = br.readLine()) != null) {
 				String[] terms = line.split(" ");
 				for (int i = 0; i < terms.length; i++) {
-					if (iio._invertedIndexOccurrences.containsKey(terms[i])) {
+					String termStemmed = Utilities.getStemmed(terms[i]).get(0);
+					if (iio._invertedIndexOccurrences.containsKey(termStemmed)) {
 						HashMap<Integer, Vector<Integer>> docInfo = iio._invertedIndexOccurrences
-								.get(terms[i]);
+								.get(termStemmed);
 						if (!docInfo.containsKey(docId)) {
 							docInfo.put(docId, new Vector<Integer>());
 						}
 
 						docInfo.get(docId).add(i); // add occurrence
 					} else {
-						iio._invertedIndexOccurrences.put(terms[i],
+						iio._invertedIndexOccurrences.put(termStemmed,
 								new HashMap<Integer, Vector<Integer>>());
-						iio._invertedIndexOccurrences.get(terms[i]).put(docId,
+						iio._invertedIndexOccurrences.get(termStemmed).put(docId,
 								new Vector<Integer>());
-						iio._invertedIndexOccurrences.get(terms[i]).get(docId)
+						iio._invertedIndexOccurrences.get(termStemmed).get(docId)
 								.add(i);
 					}
 				}
@@ -293,7 +294,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 	private void testNextDoc(IndexerInvertedOccurrence iio) {
 		// String query = "the \"new york city\"";
-		String query = "\"it is in\" the \"new york city\"";
+		String query = "the \"new york city\"";
 		QueryPhrase qPhrase = new QueryPhrase(query);
 		qPhrase.processQuery();
 

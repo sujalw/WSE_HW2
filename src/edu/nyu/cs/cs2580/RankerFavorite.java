@@ -49,100 +49,6 @@ public class RankerFavorite extends Ranker {
 		
 		return sortedResults;
 	}
-			
-	public Vector<ScoredDocument> sortScoredDocument(
-			Vector<ScoredDocument> sds) {
-		if (sds.size() > 0) {
-			Collections.sort(sds, new Comparator<ScoredDocument>() {
-				@Override
-				public int compare(final ScoredDocument obj1,
-						final ScoredDocument obj2) {
-					return obj2.compareTo(obj1);
-				}
-			});
-		}
-		return sds;
-	}
-	
-	/**
-	 * Sorts top numResults elements in given vector
-	 * @param retrieval_results
-	 * @param numResults
-	 */
-	private static void sort(Vector<ScoredDocument> vec, int numResults, boolean desc) {
-		ScoredDocument[] array = new ScoredDocument[vec.size()];
-		for(int i=0 ; i<vec.size() ; i++) {
-			array[i] = vec.get(i);
-		}
-		quickSort(array, numResults, desc);
-		
-		//vec = new Vector<ScoredDocument>();
-		for(int i=0 ; i<array.length ; i++) {
-			vec.add(i, array[i]);
-			vec.remove(i+1);
-		}
-	}
-
-	private static void quickSort(ScoredDocument[] array, int numResults, boolean desc) {
-		quickSort(array, 0, array.length-1, numResults, desc);
-	}
-
-	private static void quickSort(ScoredDocument[] A, int p, int r,
-			int numResults, boolean desc) {
-		if(p >= r) {
-			return;
-		} else {
-			int q = partition(A, p, r, desc);
-			System.out.println("q = " + q);
-			if(numResults < q) {
-				System.out.println("left");
-				quickSort(A, p, q-1, numResults, desc);
-			} else {
-				System.out.println("both");
-				quickSort(A, p, q-1, numResults, desc);
-				quickSort(A, q+1, r, numResults, desc);
-			}
-		}
-	}
-
-	private static int partition(ScoredDocument[] A, int p, int r, boolean desc) {
-		int i = 0, j = 0;
-		
-		if(p == r) {
-			return p;
-		} else {
-			double pivot = A[p].get_score();
-			i = p + 1;
-			j = r;
-			
-			while(i <= j) {
-				if(! desc) {
-					// ascending order
-					while((i <= j) && A[i].get_score() <= pivot) i++;
-					while((i <= j) && A[j].get_score() > pivot) j--;
-				} else {
-					// descending order
-					while((i <= j) && A[i].get_score() > pivot) i++;
-					while((i <= j) && A[j].get_score() <= pivot) j--;
-					
-					// swap
-					if(i < j) {
-						swap(A, i, j);
-					}
-				}
-			}
-			
-			swap(A, p, j);
-		}
-		
-		return j;
-	}
-
-	private static void swap(ScoredDocument[] a, int i, int j) {
-		ScoredDocument tmp = a[i];
-		a[i] = a[j];
-		a[j] = tmp;
-	}
 
 	public ScoredDocument scoreDocument(Query query, DocumentIndexed doc) {
 		double score = getLMPScore(query, doc);
@@ -174,13 +80,17 @@ public class RankerFavorite extends Ranker {
 	}
 	
 	public ScoredDocument runquery(Query query, int docid) {
+		
+		query.processQuery();
 
 		// Build query vector
-		Vector<String> qv = Utilities.getStemmed(query._query);
+		//Vector<String> qv = Utilities.getStemmed(query._query);
+		Vector<String> qv = new Vector<String>();
+		for(String term : query._tokens) {
+			
+		}
 		
-		DocumentIndexed dIndexed = null;
-		
-		dIndexed = (DocumentIndexed)_indexer.getDoc(docid);
+		DocumentIndexed dIndexed = (DocumentIndexed)_indexer.getDoc(docid);
 		
 		double score = 0.0;
 		for (int i = 0; i < qv.size(); ++i) {
@@ -196,34 +106,16 @@ public class RankerFavorite extends Ranker {
 	}
 		
 	public static void main(String[] args) {
-		Vector<ScoredDocument> v = new Vector<ScoredDocument>();
+		/*Vector<ScoredDocument> v = new Vector<ScoredDocument>();
 		
-		//for(int i=0 ; i<10 ; i++) {
-			//v.add(new ScoredDocument(null, i));
-		//}
+		for(int i=0 ; i<10 ; i++) {
+			v.add(new ScoredDocument(null, 100*Math.random()));
+		}*/
 		
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		v.add(new ScoredDocument(null, 100*Math.random()));
-		
-		System.out.println("before = ");
+		/*System.out.println("before = ");
 		for(ScoredDocument sd : v) {
 			System.out.println(sd.get_score());
 		}
-		
-		/*sort(v, 4, true);
-		
-		System.out.println("\n\nafter = ");
-		for(ScoredDocument sd : v) {
-			System.out.println(sd.get_score());
-		}*/
 		
 		PriorityQueue<ScoredDocument> pq = new PriorityQueue<ScoredDocument>(v);
 			
@@ -231,6 +123,9 @@ public class RankerFavorite extends Ranker {
 		for(int i=0 ; i<5 ; i++) {
 			ScoredDocument sd = pq.poll();
 			System.out.println(sd.get_score());
-		}
+		}*/
+		
+		String q = "running";
+		System.out.println(Utilities.getStemmed(q));
 	}
 }

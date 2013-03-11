@@ -1,6 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.util.Scanner;
+import java.util.Vector;
 
 /**
  * @CS2580: implement this class for HW2 to handle phrase. If the raw query is
@@ -10,6 +11,7 @@ import java.util.Scanner;
 public class QueryPhrase extends Query {
 	
 	private String _phraseIndicator = "\"";
+	private boolean isProcessed = false;
 
 	public QueryPhrase(String query) {
 		super(query);
@@ -20,6 +22,10 @@ public class QueryPhrase extends Query {
 		if (_query == null) {
 			return;
 		}
+		
+		if(isProcessed) {
+	    	return;
+	    }
 		
 		// check if even number of quotes are present
 		String quotes = _query.replaceAll("[^\"]", "");
@@ -43,14 +49,22 @@ public class QueryPhrase extends Query {
 				if(! isPhrase) {
 					Scanner s2 = new Scanner(token);
 					while(s2.hasNext()) {
-						_tokens.add(s2.next());
+						_tokens.add(Utilities.getStemmed(s2.next()).get(0));
 					}
 				} else {
-					_tokens.add(token);
+					Vector<String> stemmedPhrase = Utilities.getStemmed(token);
+					StringBuffer sb = new StringBuffer();
+					for(String term : stemmedPhrase) {
+						sb.append(term);
+						sb.append(" ");
+					}
+					_tokens.add(sb.toString().trim());
 				}
 				
 				isPhrase = !isPhrase;			
 			}
+			
+			isProcessed = true;
 		}
 	}
 }
