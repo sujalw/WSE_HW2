@@ -579,7 +579,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			
 			System.out.println("Searching ... ");
 			
-			// load necessary indices			
+			// load necessary indices
 			loadIndex(query);
 		}		
 
@@ -591,8 +591,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			docIds[qTermNo++] = nextDoc(qTerm, docid);
 		}
 
-		while (!isSame(docIds) && continueSearch(docIds)) {
-			int newDocId = getMax(docIds) - 1;
+		while (! IndexerUtils.isSame(docIds) && IndexerUtils.continueSearch(docIds)) {
+			int newDocId = Utilities.getMax(docIds) - 1;
 			docIds = new int[queryProcessed.size()];
 
 			qTermNo = 0;
@@ -601,82 +601,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			}
 		}
 
-		if (!continueSearch(docIds) || !isSame(docIds)) {
+		if (! IndexerUtils.continueSearch(docIds) || ! IndexerUtils.isSame(docIds)) {
 			return null;
 		}
 
 		// At this point, all the entries in the array are same
 		//return new DocumentIndexed(docIds[0]);
 		return _documents.get(docIds[0]);
-	}
-
-	/**
-	 * 
-	 * @param list
-	 * @return maximum integer from the given list
-	 */
-	private int getMax(int[] list) {
-
-		if (list == null || list.length == 0) {
-			return -1;
-		}
-
-		int max = -1;
-
-		if (list.length > 0) {
-			max = list[0];
-			for (int i : list) {
-				max = Math.max(max, i);
-			}
-		}
-
-		return max;
-	}
-
-	/**
-	 * 
-	 * @param docIds
-	 * @return true if all numbers in the given list are same. Else returns
-	 *         false
-	 */
-	private boolean isSame(int[] docIds) {
-
-		if (docIds == null || docIds.length == 0) {
-			return false;
-		}
-
-		if (docIds.length > 0) {
-			int first = docIds[0];
-			for (int i = 1; i < docIds.length; i++) {
-				if (first != docIds[i]) {
-					return false;
-				}
-			}
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	/**
-	 * 
-	 * @param docIds
-	 * @return
-	 */
-	private boolean continueSearch(int[] docIds) {
-
-		if (docIds == null || docIds.length <= 0) {
-			return false;
-		}
-
-		for (int docId : docIds) {
-			// if atleast one term is not found, search should not continue
-			if (docId == -1) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 
 	/**
@@ -703,84 +634,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			// docList.toArray(docIdList);
 
 			// perform search for nextdocid on this array nextDocId =
-			nextDocId = search(docid, docIdList, true);
+			nextDocId = IndexerUtils.search(docid, docIdList, true);
 		}
 
 		return nextDocId;
 
-	}
-
-	private int search(int currentDocId, Integer[] docIdList, boolean galloping) {
-
-		if (docIdList == null || docIdList.length == 0
-				|| docIdList[docIdList.length - 1] < currentDocId) {
-			return -1;
-		}
-
-		if (docIdList[0] > currentDocId) {
-			return docIdList[0];
-		}
-
-		int low = 0, high = 0;
-		int jump = 1;
-
-		if (galloping) {
-			// Through galloping, find a slot for binary search
-			while ((high < docIdList.length) && docIdList[high] <= currentDocId) {
-
-				low = high;
-				// increase step size
-				jump = jump << 1;
-				high += jump;
-			}
-
-			if (high > (docIdList.length - 1)) {
-				high = docIdList.length - 1;
-			}
-		} else {
-			high = docIdList.length - 1;
-		}
-
-		return binarySearch(docIdList, low, high, currentDocId);
-	}
-
-	/*
-	 * Perform binary search over the given list to find a number > current.
-	 * Returns -1 if no such number is found
-	 */
-	private int binarySearch(Integer[] list, int begin, int end, int current) {
-
-		if (list == null || list.length == 0) {
-			return -1;
-		}
-
-		if (begin < 0 || end < 0 || begin >= list.length || end >= list.length) {
-			return -1;
-		}
-
-		// if last number is less than current then return -1
-		if (list[end] <= current) {
-			return -1;
-		} else {
-			int mid;
-			while (begin <= end) {
-				mid = (begin + end) / 2;
-
-				if (list[mid] <= current) {
-					// search in right half
-					begin = mid + 1;
-				} else {
-					// search in left half
-					end = mid - 1;
-				}
-			}
-
-			if (list[begin] > current) {
-				return list[begin];
-			} else {
-				return list[begin + 1];
-			}
-		}
 	}
 
 	@Override
@@ -841,9 +699,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		long start, end;
 
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
 		String queryStr;
-
 		try {
 			while (!(queryStr = br.readLine()).equals("quit")) {
 				Query q = new Query(queryStr);

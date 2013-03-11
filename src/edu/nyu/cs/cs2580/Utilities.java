@@ -356,4 +356,40 @@ public class Utilities {
 			f.delete();			
 		}		
 	}
+	
+	/**
+	 * 
+	 * @param list
+	 * @return maximum integer from the given list. Returns -1 if list is null or empty.
+	 * Should be used only for non-negative numbers. 
+	 */
+	public static int getMax(int[] list) {
+
+		if (list == null || list.length == 0) {
+			return -1;
+		}
+
+		int max = list[0];
+
+		for (int i : list) {
+			max = Math.max(max, i);
+		}
+
+		return max;
+	}
+
+	public static int getMin(int[] list) {
+		
+		if (list == null || list.length == 0) {
+			return -1;
+		}
+		
+		int min = list[0];
+		
+		for (int i : list) {
+			min = Math.min(min, i);
+		}
+		
+		return min;
+	}
 }
