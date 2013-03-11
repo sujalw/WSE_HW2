@@ -3,6 +3,7 @@ package edu.nyu.cs.cs2580;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 import java.util.Vector;
 
@@ -33,7 +34,7 @@ public class RankerFavorite extends Ranker {
 
 	@Override
 	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
-		Vector<ScoredDocument> retrieval_results = new Vector<ScoredDocument>();
+		PriorityQueue<ScoredDocument> retrieval_results = new PriorityQueue<ScoredDocument>();
 		
 		DocumentIndexed di = (DocumentIndexed)_indexer.nextDoc(query, -1);
 		while (di != null) {
@@ -41,21 +42,11 @@ public class RankerFavorite extends Ranker {
 			retrieval_results.add(scoreDocument(query, di));
 			di = (DocumentIndexed)_indexer.nextDoc(query, di._docid);
 		}
-		
-		// sort results
-		// TODO: sort only top numResults elements
-		retrieval_results = sortScoredDocument(retrieval_results);		
-		//sort(retrieval_results, numResults, true);
 
+		// return only top numResults elements
 		Vector<ScoredDocument> sortedResults = new Vector<ScoredDocument>();
-		
-		System.out.println("numResults = " + numResults);
-		System.out.println("vec size = " + retrieval_results.size());
-		
-		if(numResults < retrieval_results.size()) {
-			sortedResults.addAll(retrieval_results.subList(0, numResults-1));
-		} else {
-			sortedResults.addAll(retrieval_results);
+		for(int i=0 ; i<numResults && retrieval_results.peek()!=null ; i++) {
+			sortedResults.add(retrieval_results.poll());
 		}
 		
 		return sortedResults;
@@ -104,13 +95,15 @@ public class RankerFavorite extends Ranker {
 			return;
 		} else {
 			int q = partition(A, p, r, desc);
-			
-			quickSort(A, p, q-1, numResults, desc);
-			
-			// sort right half only when required
-			//if(q < numResults) {
-				quickSort(A, q+1, r, numResults, desc);				
-			//}
+			System.out.println("q = " + q);
+			if(numResults < q) {
+				System.out.println("left");
+				quickSort(A, p, q-1, numResults, desc);
+			} else {
+				System.out.println("both");
+				quickSort(A, p, q-1, numResults, desc);
+				quickSort(A, q+1, r, numResults, desc);
+			}
 		}
 	}
 
@@ -120,7 +113,7 @@ public class RankerFavorite extends Ranker {
 		if(p == r) {
 			return p;
 		} else {
-			double pivot = A[0].get_score();
+			double pivot = A[p].get_score();
 			i = p + 1;
 			j = r;
 			
@@ -194,12 +187,8 @@ public class RankerFavorite extends Ranker {
 		double score = 0.0;
 		for (int i = 0; i < qv.size(); ++i) {
 
-			score += Math
-					.log((1 - lambda)
-							* (getQueryLikelihood(qv.get(i), docid))
-							+ (lambda)
-							* (_indexer.corpusTermFrequency(qv.get(i)) / _indexer
-									.totalTermFrequency()));
+			score += Math.log((1 - lambda) * (getQueryLikelihood(qv.get(i), docid))
+				+ (lambda) * (_indexer.corpusTermFrequency(qv.get(i)) / _indexer.totalTermFrequency()));
 		}
 
 		// antilog
@@ -211,19 +200,38 @@ public class RankerFavorite extends Ranker {
 	public static void main(String[] args) {
 		Vector<ScoredDocument> v = new Vector<ScoredDocument>();
 		
-		for(int i=0 ; i<10 ; i++) {
-			v.add(new ScoredDocument(null, i));
-		}
+		//for(int i=0 ; i<10 ; i++) {
+			//v.add(new ScoredDocument(null, i));
+		//}
+		
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
+		v.add(new ScoredDocument(null, 100*Math.random()));
 		
 		System.out.println("before = ");
 		for(ScoredDocument sd : v) {
 			System.out.println(sd.get_score());
 		}
 		
-		sort(v, 4, true);
+		/*sort(v, 4, true);
 		
 		System.out.println("\n\nafter = ");
 		for(ScoredDocument sd : v) {
+			System.out.println(sd.get_score());
+		}*/
+		
+		PriorityQueue<ScoredDocument> pq = new PriorityQueue<ScoredDocument>(v);
+			
+		System.out.println("\n\nafter = ");
+		for(int i=0 ; i<5 ; i++) {
+			ScoredDocument sd = pq.poll();
 			System.out.println(sd.get_score());
 		}
 	}
