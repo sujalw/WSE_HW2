@@ -1,7 +1,5 @@
 package edu.nyu.cs.cs2580;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.Vector;
 
@@ -33,10 +31,11 @@ public class RankerFavorite extends Ranker {
 	@Override
 	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
 		PriorityQueue<ScoredDocument> retrieval_results = new PriorityQueue<ScoredDocument>();
+		query.processQuery();
 		
 		DocumentIndexed di = (DocumentIndexed)_indexer.nextDoc(query, -1);
 		while (di != null) {
-			System.out.println("docid = " + di._docid);
+			//System.out.println("docid = " + di._docid);
 			retrieval_results.add(scoreDocument(query, di));
 			di = (DocumentIndexed)_indexer.nextDoc(query, di._docid);
 		}
@@ -51,7 +50,12 @@ public class RankerFavorite extends Ranker {
 	}
 
 	public ScoredDocument scoreDocument(Query query, DocumentIndexed doc) {
+		// TODO: adjust term frequency and total word count for doc due to phrases
+				
 		double score = getLMPScore(query, doc);
+		
+		// TODO: restore original term frequencies and total word count
+		
 		return new ScoredDocument(doc, score);
 	}
 	
@@ -66,8 +70,14 @@ public class RankerFavorite extends Ranker {
 		long totalWordsInDoc = 0;
 		
 		dIndexed = (DocumentIndexed)_indexer.getDoc(docid);
+		
+		// TODO: termFreqInDoc and totalWordsInDoc should change because of presence of phrases
 		termFreqInDoc = _indexer.documentTermFrequency(term, dIndexed.getUrl());
 		totalWordsInDoc = dIndexed.getTotalWords();
+		
+		//System.out.println("docid = " + docid);
+		//System.out.println("term freq for - " + term + " = " + termFreqInDoc);
+		//System.out.println("total words in doc = " + totalWordsInDoc);
 		
 		double ql = 0d;
 		
@@ -81,20 +91,19 @@ public class RankerFavorite extends Ranker {
 	
 	public ScoredDocument runquery(Query query, int docid) {
 		
-		query.processQuery();
+		//query.processQuery();
 
 		// Build query vector
 		//Vector<String> qv = Utilities.getStemmed(query._query);
 		Vector<String> qv = new Vector<String>();
 		for(String term : query._tokens) {
-			
+			qv.add(term);
 		}
 		
 		DocumentIndexed dIndexed = (DocumentIndexed)_indexer.getDoc(docid);
 		
 		double score = 0.0;
 		for (int i = 0; i < qv.size(); ++i) {
-
 			score += Math.log((1 - lambda) * (getQueryLikelihood(qv.get(i), docid))
 				+ (lambda) * (_indexer.corpusTermFrequency(qv.get(i)) / _indexer.totalTermFrequency()));
 		}
@@ -124,8 +133,5 @@ public class RankerFavorite extends Ranker {
 			ScoredDocument sd = pq.poll();
 			System.out.println(sd.get_score());
 		}*/
-		
-		String q = "running";
-		System.out.println(Utilities.getStemmed(q));
 	}
 }

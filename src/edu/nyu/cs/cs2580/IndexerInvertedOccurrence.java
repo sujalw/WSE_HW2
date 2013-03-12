@@ -18,6 +18,10 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
 public class IndexerInvertedOccurrence extends Indexer {
 
 	HashMap<String, HashMap<Integer, Vector<Integer>>> _invertedIndexOccurrences = new HashMap<String, HashMap<Integer, Vector<Integer>>>();
+	
+	// Stores all Document (not body vectors) in memory.
+	public Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
+	public Map<String, Integer> _docIdUriMap = new HashMap<String, Integer>();
 
 	public IndexerInvertedOccurrence(Options options) {
 		super(options);
@@ -34,8 +38,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 	@Override
 	public DocumentIndexed getDoc(int docid) {
-		SearchEngine.Check(false, "Do NOT change, not used for this Indexer!");
-		return null;
+		return _documents.get(docid);
 	}
 
 	/**
@@ -55,6 +58,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 			docIds[qTokenNo++] = nextDoc(qTerm, docid);
 		}
 
+		// loop until docids for all the terms are same and is not -1
 		while (!IndexerUtils.isSame(docIds)
 				&& IndexerUtils.continueSearch(docIds)) {
 			int newDocId = Utilities.getMax(docIds) - 1;
@@ -66,17 +70,22 @@ public class IndexerInvertedOccurrence extends Indexer {
 			}
 		}
 
+		// check if no docid is found
 		if (!IndexerUtils.continueSearch(docIds)
 				|| !IndexerUtils.isSame(docIds)) {
 			return null;
 		}
 
-		// At this point, all the entries in the array are same
-		// return new DocumentIndexed(docIds[0]);
-		// return _documents.get(docIds[0]);
+		// Return docid. At this point, all the entries in the array are same.
 		return new DocumentIndexed(docIds[0]);
 	}
 
+	/**
+	 * Searches for next document containing the term (which can be a phrase also)
+	 * @param term
+	 * @param docid
+	 * @return
+	 */
 	private int nextDoc(String term, int docid) {
 
 		if (term == null || term.trim().length() == 0) {
@@ -86,27 +95,31 @@ public class IndexerInvertedOccurrence extends Indexer {
 		int nextDocId = -1;
 		Integer[] docIdList = null;
 
+		// check whether the term is a phrase
 		if (term.contains(" ")) {
 			// search for phrase
 
 			String[] phraseTerms = term.split(" ");
-			final int phraseLength = phraseTerms.length;
 			boolean isPresent = false;
 
 			// get document containing all the words in term
 			Query query = new Query(term);
 			query.processQuery();
-			DocumentIndexed dIndexed = nextDoc(query, docid);
+			
+			// search for a document that contains all the phrase terms
+			DocumentIndexed dIndexed = nextDoc(query, docid);			
 			if (dIndexed == null) {
 				return -1;
 			} else {
-				// search for phrase
+				// check for phrase
 				
 				int[] occurrences = new int[phraseTerms.length];
 
 				// perform occurrence retrieval
 				int qTermNo = 0;
 				int currentOccurrence = -1;
+				
+				// get occurrence of each phrase term
 				for (String qTerm : phraseTerms) {
 
 					Set<Integer> occurrencesListSorted = new TreeSet<Integer>(
@@ -142,13 +155,9 @@ public class IndexerInvertedOccurrence extends Indexer {
 							docInfo.put(dIndexed._docid, new Vector<Integer>());
 						}
 						docInfo.get(dIndexed._docid).add(occurrences[0]);
-
-						// reduce total words count of this document as the
-						// entire phrase is now treated as single term
-						// dIndexed.setTotalWords(dIndexed.getTotalWords() -
-						// phraseLength + 1);
 					}
 
+					// update search parameters for searching for next occurrences of phrase terms 
 					int minOccurrence = Utilities.getMin(occurrences);
 
 					if (minOccurrence == occurrences[0]) {
@@ -157,6 +166,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 						currentOccurrence = occurrences[0] - 1;
 					}
 
+					// get next occurrences of phrase terms
 					qTermNo = 0;
 					for (String qTerm : phraseTerms) {
 
@@ -171,10 +181,12 @@ public class IndexerInvertedOccurrence extends Indexer {
 								currentOccurrence, occurrencesList, false);
 					}
 				}
-
+				
 				if (!isPresent) {
+					// if phrase is not present in current document, return next document containing it
 					return nextDoc(term, dIndexed._docid);
-				} else {					
+				} else {
+					// return current document as it contains the phrase
 					return dIndexed._docid;
 				}
 			}
@@ -209,7 +221,11 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 	@Override
 	public int documentTermFrequency(String term, String url) {
-		SearchEngine.Check(false, "Not implemented!");
+		if(_invertedIndexOccurrences.containsKey(term)) {
+			int docId = _docIdUriMap.get(url);
+			return _invertedIndexOccurrences.get(term).get(docId).size();
+		}
+		
 		return 0;
 	}
 
@@ -260,13 +276,14 @@ public class IndexerInvertedOccurrence extends Indexer {
 			 * System.out.println(t); }
 			 */
 
-			System.out.println("\nafter loading = \n");
-			printIndex(iio);
+			//System.out.println("\nafter loading = \n");
+			//printIndex(iio);
 			
-			testNextDoc(iio);
+			//testNextDoc(iio);
+			testRankerFavorite(iio);
 
-			System.out.println("\n\nafter search\n");
-			printIndex(iio);
+			//System.out.println("\n\nafter search\n");
+			//printIndex(iio);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -289,6 +306,33 @@ public class IndexerInvertedOccurrence extends Indexer {
 			}
 
 			System.out.println();
+		}
+	}
+	
+	private void testRankerFavorite(IndexerInvertedOccurrence iio) {
+		RankerFavorite rf = new RankerFavorite(iio._options, null, iio);		
+		QueryPhrase q = new QueryPhrase("the \"new york\" city");
+		
+		// populate _documents
+		DocumentIndexed dIndexed = new DocumentIndexed(0);
+		dIndexed.setUrl("doc1");
+		dIndexed.setTitle("My Studies");
+		dIndexed.setTotalWords(15);
+		iio._totalTermFrequency += 15;
+		iio._documents.add(dIndexed);								
+		iio._docIdUriMap.put("doc1", 0);
+		
+		dIndexed = new DocumentIndexed(1);
+		dIndexed.setUrl("doc2");
+		dIndexed.setTitle("NYC");
+		dIndexed.setTotalWords(19);
+		iio._totalTermFrequency += 19;
+		iio._documents.add(dIndexed);								
+		iio._docIdUriMap.put("doc2", 1);
+		
+		Vector<ScoredDocument> sd = rf.runQuery(q, 5);
+		for(ScoredDocument d : sd) {
+			System.out.println(d.getDocId() + " : " + d.get_score());
 		}
 	}
 
