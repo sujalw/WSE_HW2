@@ -12,6 +12,7 @@ public class CompressionUtility {
 	}*/
 	
 	public String encodeByteAlign(int number) {
+		System.out.println("in encode...");
 		CompressionUtility cu = new CompressionUtility();
 		return cu.binaryToHex(cu.appendAdditionalZeroOrOne(cu.appendZeros(cu.convertToBinary(number))));
 	}

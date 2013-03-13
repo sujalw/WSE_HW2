@@ -52,12 +52,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 	public Map<String, Integer> _docIdUriMap = new HashMap<String, Integer>();
 
 	public static void main(String[] args) {
-		//new IndexerInvertedOccurrence();
-		System.out.println(Utilities.getStemmed("new york university").toString());
-		
-		//System.out.println("s = " + s);
-		//Document doc = Jsoup.parse("data/wiki/Richard_Stallman", "UTF-8");
-		//System.out.println(doc.text());
+		new IndexerInvertedOccurrence();
 	}
 	
 	public IndexerInvertedOccurrence() {
@@ -79,8 +74,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 			System.out.println("total docs loaded = " + iio._documents.size());
 			
 			testNextDoc(iio);
-			//testPhraseAndConjuctiveRetrieval(iio);
-			 
+			//testPhraseAndConjuctiveRetrieval(iio);			 
 			
 			
 		} catch (IOException e) {
@@ -520,8 +514,6 @@ public class IndexerInvertedOccurrence extends Indexer {
 			SortedSet<String> qTerms = new TreeSet<String>();
 			qTerms.addAll(Utilities.getStemmed(query._query));
 			
-			//_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
-			//_occuredIndex = new LinkedHashMap<String, Map<Integer,Vector<Integer>>>();
 			for(String qTerm : qTerms) {
 				if(qTerm.trim().length() > 0) {
 					if(! _occuredIndex.containsKey(qTerm)) {
@@ -529,20 +521,6 @@ public class IndexerInvertedOccurrence extends Indexer {
 					}
 				}
 			}
-			
-			/*Set<Character> chars = new HashSet<Character>();
-			query.processQuery();
-			Vector<String> tokens = query._tokens;
-			for(String token : tokens) {
-				if(token.trim().length() != 0) {
-					chars.add(token.charAt(0));
-				}				
-			}
-			
-			
-			for(Character c : chars) {
-				loadIndex(String.valueOf(c).toLowerCase());
-			}*/
 		}
 
 		/**
@@ -550,6 +528,10 @@ public class IndexerInvertedOccurrence extends Indexer {
 		 * @param term
 		 */
 		public void loadIndex(String term) {
+			
+			if(_occuredIndex.containsKey(term)) {
+				return;
+			}
 					
 			String indexFile = _options._indexPrefix + "/" + term.charAt(0) + ".idx";			
 			Vector<Integer> wordOccurenceList;

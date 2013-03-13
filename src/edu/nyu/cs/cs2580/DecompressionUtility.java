@@ -35,6 +35,8 @@ public class DecompressionUtility {
 	
 	public Vector<Integer> decodeByteAlign(Vector<Character> encodedList) {
 		
+		//System.out.println("in decodebytealign .....");
+		
 		if(encodedList == null || encodedList.size() == 0)
 			return null;
 

@@ -386,6 +386,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	 * @param term
 	 */
 	public void loadIndex(String term) {
+		
+		if(_invertedIndex.containsKey(term)) {
+			return;
+		}
+		
 		//_invertedIndex = new LinkedHashMap<String, Map<Integer, Integer>>();
 				
 		String indexFile = _options._indexPrefix + "/" + term.charAt(0)
@@ -403,18 +408,19 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 					String token = scanner.next();
 					
-					// create new map entry for current term
-					Map<Integer, Integer> docInfoMap = new HashMap<Integer, Integer>();
-					_invertedIndex.put(token, docInfoMap);
+					// load index for only the required term
+					if(token.equals(term)) {						
+						// create new map entry for current term
+						Map<Integer, Integer> docInfoMap = new HashMap<Integer, Integer>();
+						_invertedIndex.put(token, docInfoMap);
 
-					// build docInfoMap
-					String[] docInfo = scanner.next().split(_doclistDelim);
-					for (String doc : docInfo) {
-						String[] doc_count = doc.split(_docCountDelim);						
-						docInfoMap.put(Integer.valueOf(doc_count[0]), Integer.valueOf(doc_count[1]));
-					}
-
-					if (token.equals(term)) {
+						// build docInfoMap
+						String[] docInfo = scanner.next().split(_doclistDelim);
+						for (String doc : docInfo) {
+							String[] doc_count = doc.split(_docCountDelim);						
+							docInfoMap.put(Integer.valueOf(doc_count[0]), Integer.valueOf(doc_count[1]));
+						}
+						
 						break;
 					}
 				}
