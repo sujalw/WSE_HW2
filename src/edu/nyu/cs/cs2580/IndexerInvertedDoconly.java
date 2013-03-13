@@ -592,8 +592,14 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 		// perform conjunctive retrieval
 		int qTermNo = 0;
+		int docId;
 		for (String qTerm : queryProcessed) {
-			docIds[qTermNo++] = nextDoc(qTerm, docid);
+			docId = nextDoc(qTerm, docid);
+			docIds[qTermNo++] = docId;
+			
+			if(docId == -1) {
+				break;
+			}
 		}
 
 		while (! IndexerUtils.isSame(docIds) && IndexerUtils.continueSearch(docIds)) {
@@ -602,7 +608,12 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 			qTermNo = 0;
 			for (String qTerm : queryProcessed) {
-				docIds[qTermNo++] = nextDoc(qTerm, newDocId);
+				docId = nextDoc(qTerm, newDocId);
+				docIds[qTermNo++] = docId;
+				
+				if(docId == -1) {
+					break;
+				}
 			}
 		}
 

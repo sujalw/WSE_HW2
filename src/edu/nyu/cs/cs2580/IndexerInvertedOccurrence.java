@@ -482,8 +482,14 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 			// perform conjunctive retrieval on each token which can be a phrase
 			int qTokenNo = 0;
+			int docId = -1;
 			for (String qTerm : query._tokens) {
-				docIds[qTokenNo++] = nextDoc(qTerm, docid);
+				docId = nextDoc(qTerm, docid);
+				docIds[qTokenNo++] = docId;
+				
+				if(docId == -1) {
+					break;
+				}
 			}
 
 			// loop until docids for all the terms are same and is not -1
@@ -494,7 +500,12 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 				qTokenNo = 0;
 				for (String qTerm : query._tokens) {
-					docIds[qTokenNo++] = nextDoc(qTerm, newDocId);
+					docId = nextDoc(qTerm, newDocId);
+					docIds[qTokenNo++] = docId;
+					
+					if(docId == -1) {
+						break;
+					}
 				}
 			}
 
@@ -628,6 +639,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 					// perform occurrence retrieval
 					int qTermNo = 0;
 					int currentOccurrence = -1;
+					int occNo = -1;
 
 					// get occurrence of each phrase term
 					for (String qTerm : phraseTerms) {
@@ -637,7 +649,12 @@ public class IndexerInvertedOccurrence extends Indexer {
 						Integer[] occurrencesList = new Integer[occurrencesListSorted.size()];
 						occurrencesListSorted.toArray(occurrencesList);
 
-						occurrences[qTermNo++] = IndexerUtils.search(currentOccurrence, occurrencesList, false);
+						occNo = IndexerUtils.search(currentOccurrence, occurrencesList, true);
+						occurrences[qTermNo++] = occNo;
+						
+						if(occNo == -1) {
+							break;
+						}
 					}
 
 					// loop for all the occurrences of phrase
@@ -674,6 +691,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 						// get next occurrences of phrase terms
 						qTermNo = 0;
+						occNo = -1;
 						for (String qTerm : phraseTerms) {
 
 							Set<Integer> occurrencesListSorted = new TreeSet<Integer>(
@@ -683,8 +701,13 @@ public class IndexerInvertedOccurrence extends Indexer {
 									.size()];
 							occurrencesListSorted.toArray(occurrencesList);
 
-							occurrences[qTermNo++] = IndexerUtils.search(
+							occNo = IndexerUtils.search(
 									currentOccurrence, occurrencesList, false);
+							occurrences[qTermNo++] = occNo;
+							
+							if(occNo == -1) {
+								break;
+							}
 						}
 					}
 
