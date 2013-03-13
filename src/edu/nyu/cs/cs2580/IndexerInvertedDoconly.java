@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -361,14 +362,14 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	}
 	
 	public void loadIndex(Query query) {
-		Map<Character, Byte> chars = new HashMap<Character, Byte>();
+		/*Map<Character, Byte> chars = new HashMap<Character, Byte>();
 		query.processQuery();
 		Vector<String> tokens = query._tokens;
 		for(String token : tokens) {
 			if(token.trim().length() != 0) {
 				chars.put(token.charAt(0), null);
 			}				
-		}
+		}*/
 		
 		query.processQuery();
 		SortedSet<String> qTerms = new TreeSet<String>();
@@ -436,9 +437,9 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		BufferedReader br;
 		String line;
 		
-		System.out.println("inside loadIndex of doconly");
+		/*System.out.println("inside loadIndex of doconly");
 		
-		/*FilenameFilter indexFilesFilter = new FilenameFilter() {
+		FilenameFilter indexFilesFilter = new FilenameFilter() {
 			@Override
 			public boolean accept(File arg0, String arg1) {
 				return arg1.endsWith(".idx");
@@ -488,8 +489,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			}
 		}
 		
-		System.out.println("Loading index done ...");
-		*/
+		System.out.println("Loading index done ...");*/
+		
 
 		// load doc info file
 		System.out.println("Loading documents info from : " + _docInfoFile);
@@ -747,8 +748,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 			//int cnt = iido._invertedIndex.get("xypolia").size();
 			//System.out.println("cnt = " + cnt);
 
-			testNextDoc(iido);
-			//testRanker(iido);			
+			//testNextDoc(iido);
+			testRanker(iido);			
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
 		}

@@ -331,7 +331,8 @@ public class Utilities {
 		s.useDelimiter("[^a-zA-Z0-9]");
 		while (s.hasNext()) {
 			String term = s.next();
-
+			
+			//System.out.println("Term = "+term);
 			Stemmer stemmer = new Stemmer();
 			stemmer.add(term.toCharArray(), term.length());
 			stemmer.stem(); // code of stemmer is modified to compute just
