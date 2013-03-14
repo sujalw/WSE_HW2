@@ -29,11 +29,12 @@ public class RankerFavorite extends Ranker {
 	}
 
 	@Override
-	public Vector<ScoredDocument> runQuery(Query query, int numResults) {
+	public Vector<ScoredDocument> runQuery(Query query, int numResults) {		
+		System.out.println("in numResults");
 		PriorityQueue<ScoredDocument> retrieval_results = new PriorityQueue<ScoredDocument>();
-		query.processQuery();
+		//query.processQuery();
 		
-		DocumentIndexed di = (DocumentIndexed)_indexer.nextDoc(query, -1);
+		DocumentIndexed di = (DocumentIndexed)_indexer.nextDoc(query, -1);		
 		while (di != null) {
 			retrieval_results.add(scoreDocument(query, di));		
 			di = (DocumentIndexed)_indexer.nextDoc(query, di._docid);
@@ -101,8 +102,9 @@ public class RankerFavorite extends Ranker {
 		
 		DocumentIndexed dIndexed = (DocumentIndexed)_indexer.getDoc(docid);
 		
+		System.out.println("tot = " + _indexer.totalTermFrequency());		
 		double score = 0.0;
-		for (int i = 0; i < qv.size(); ++i) {
+		for (int i = 0; i < qv.size(); ++i) {			
 			score += Math.log((1 - lambda) * (getQueryLikelihood(qv.get(i), docid))
 				+ (lambda) * (_indexer.corpusTermFrequency(qv.get(i)) / _indexer.totalTermFrequency()));
 		}

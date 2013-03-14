@@ -67,7 +67,7 @@ public class QueryPhrase extends Query {
 					sb.append(" ");
 				}
 				_tokens.add(sb.toString().trim());
-				_phrases.add(sb.toString().trim());
+				//_phrases.add(sb.toString().trim());
 			}
 
 			isPhrase = !isPhrase;

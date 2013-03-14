@@ -484,7 +484,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 				
 				// load necessary indices
 				loadIndex(query);
-				System.out.println("doc cnt for 'new' = " + _occuredIndex.get("new").size());
+				//System.out.println("doc cnt for 'new' = " + _occuredIndex.get("new").size());
 			}			
 
 			int[] docIds = new int[query._tokens.size()];
