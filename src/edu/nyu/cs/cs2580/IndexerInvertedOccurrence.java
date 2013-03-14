@@ -86,12 +86,14 @@ public class IndexerInvertedOccurrence extends Indexer {
 	public IndexerInvertedOccurrence(Options options) {
 		super(options);
 		System.out.println("Using Indexer: " + this.getClass().getSimpleName());
+		
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 	}
 	
 	  @Override
 	  public void constructIndex() throws IOException {
 		  // delete previously created index
-		  Utilities.deleteFilesInDir(_options._indexPrefix);
+		  //Utilities.deleteFilesInDir(_options._indexPrefix);
 
 		  String corpusDirPath = _options._corpusPrefix;
 		  System.out.println("Constructing index from: " + corpusDirPath);
@@ -409,10 +411,16 @@ public class IndexerInvertedOccurrence extends Indexer {
 			while ((line = br.readLine()) != null) {
 				info = line.split(_docInfoDelim);
 					
-				dIndexed = new DocumentIndexed(Integer.parseInt(info[0]));
-				dIndexed.setUrl(info[1]);
+				int dId = Integer.parseInt(info[0]);
+				dIndexed = new DocumentIndexed(dId);
+				dIndexed.setUrl(info[1]);				
 				dIndexed.setTitle(info[2]);
+				long totalWordsInDoc = Long.parseLong(info[3]); ///
+				dIndexed.setTotalWords(totalWordsInDoc);
+				_docIdUriMap.put(info[1], dId);
 				_documents.add(dIndexed);
+				
+				_totalTermFrequency += totalWordsInDoc;
 			}
 			_numDocs = _documents.size();
 		} catch (Exception e) {
@@ -466,8 +474,8 @@ public class IndexerInvertedOccurrence extends Indexer {
 			}
 			
 			// remove duplicate terms in query
-			Set<String> queryProcessed = new TreeSet<String>(
-			Utilities.getStemmed(query._query));
+			//Set<String> queryProcessed = new TreeSet<String>(
+			//Utilities.getStemmed(query._query));
 					
 			if(docid == -1) {
 				// It means this is first call to nextDoc for given query.
@@ -476,6 +484,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 				
 				// load necessary indices
 				loadIndex(query);
+				System.out.println("doc cnt for 'new' = " + _occuredIndex.get("new").size());
 			}			
 
 			int[] docIds = new int[query._tokens.size()];
@@ -516,7 +525,8 @@ public class IndexerInvertedOccurrence extends Indexer {
 			}
 
 			// Return docid. At this point, all the entries in the array are same.
-			return new DocumentIndexed(docIds[0]);
+			//return new DocumentIndexed(docIds[0]);
+			return _documents.get(docIds[0]);
 		}
 
 		public void loadIndex(Query query) {
@@ -544,14 +554,15 @@ public class IndexerInvertedOccurrence extends Indexer {
 				return;
 			}
 					
-			String indexFile = _options._indexPrefix + "/" + term.charAt(0) + ".idx";			
+			String indexFile = _options._indexPrefix + "/" + term.charAt(0) + ".idx";
+			System.out.println("loading from : " + indexFile);
 			Vector<Integer> wordOccurenceList;
 			  
 			try {
 				BufferedReader br = new BufferedReader(new FileReader(indexFile));
 				String line = "";
 
-				while ((line = br.readLine()) != null) {
+				while ((line = br.readLine()) != null) {	
 					if (line.trim().length() != 0) {
 						Scanner scanner = new Scanner(line);
 						scanner.useDelimiter("[" + _termDoclistDelim + "\n]");
@@ -579,6 +590,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 											wordOccurenceList.add(Integer.parseInt(word_count[i]));
 										}	
 									}	
+									
 									docInfoMap.put(docId, wordOccurenceList);
 								}
 							}
@@ -590,7 +602,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 					}
 				}
 
-				//System.out.println("Loading done...");
+				System.out.println("Loading done...");
 
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -702,7 +714,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 							occurrencesListSorted.toArray(occurrencesList);
 
 							occNo = IndexerUtils.search(
-									currentOccurrence, occurrencesList, false);
+									currentOccurrence, occurrencesList, true);
 							occurrences[qTermNo++] = occNo;
 							
 							if(occNo == -1) {

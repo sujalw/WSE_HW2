@@ -35,11 +35,10 @@ public class RankerFavorite extends Ranker {
 		
 		DocumentIndexed di = (DocumentIndexed)_indexer.nextDoc(query, -1);
 		while (di != null) {
-			//System.out.println("docid = " + di._docid);
-			retrieval_results.add(scoreDocument(query, di));
+			retrieval_results.add(scoreDocument(query, di));		
 			di = (DocumentIndexed)_indexer.nextDoc(query, di._docid);
 		}
-
+		
 		// return only top numResults elements
 		Vector<ScoredDocument> sortedResults = new Vector<ScoredDocument>();
 		for(int i=0 ; i<numResults && retrieval_results.peek()!=null ; i++) {

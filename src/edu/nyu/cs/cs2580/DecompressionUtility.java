@@ -11,8 +11,14 @@ public class DecompressionUtility {
 	public static void main(String args[]) {
 		DecompressionUtility du = new DecompressionUtility();
 		//System.out.println(du.hexToBinaryBlockOf4('E'));
+		String encoded = "18E401F41A9704C821990";
+		
 		Vector<Character> l = new Vector<Character>();
-		l.add('2');
+		for(int i=0 ; i<encoded.length() ; i++) {
+			l.add(encoded.charAt(i));
+		}
+				
+		/*l.add('2');
 		l.add('7');
 		l.add('8');
 		l.add('6');
@@ -23,7 +29,7 @@ public class DecompressionUtility {
 		l.add('2');
 		l.add('B');
 		l.add('F');
-		l.add('3');
+		l.add('3');*/
 		printUtility(du.decodeByteAlign(l));
 	}
 	

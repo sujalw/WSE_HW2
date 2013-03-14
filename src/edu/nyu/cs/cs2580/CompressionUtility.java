@@ -6,13 +6,12 @@ package edu.nyu.cs.cs2580;
 public class CompressionUtility {
 
 	// For Testing purpose
-	/*public static void main(String args[]) {
+	public static void main(String args[]) {
 		CompressionUtility cu = new CompressionUtility();
-		System.out.println(cu.encodeByteAlign(0));
-	}*/
+		System.out.println(cu.encodeByteAlign(3172));
+	}
 	
 	public String encodeByteAlign(int number) {
-		System.out.println("in encode...");
 		CompressionUtility cu = new CompressionUtility();
 		return cu.binaryToHex(cu.appendAdditionalZeroOrOne(cu.appendZeros(cu.convertToBinary(number))));
 	}

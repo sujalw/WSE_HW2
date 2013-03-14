@@ -28,7 +28,7 @@ class QueryHandler implements HttpHandler {
 	 */
 	public static class CgiArguments {
 		// The raw user query
-		public static String _query = "";
+		public String _query = "";
 		// How many results to return
 		private int _numResults = 10;
 
@@ -106,7 +106,6 @@ class QueryHandler implements HttpHandler {
 			StringBuffer response) {
 		for (ScoredDocument doc : docs) {
 			response.append(response.length() > 0 ? "\n" : "");
-			response.append(CgiArguments._query + "\t");
 			response.append(doc.asTextResult());
 		}
 		response.append(response.length() > 0 ? "\n" : "");
@@ -155,10 +154,14 @@ class QueryHandler implements HttpHandler {
 		Query processedQuery = new Query(cgiArgs._query);
 		processedQuery.processQuery();
 
-		// Ranking.
+		// Ranking.		
+		long start = System.currentTimeMillis();
 		Vector<ScoredDocument> scoredDocs = ranker.runQuery(processedQuery,
 				cgiArgs._numResults);
+		long end = System.currentTimeMillis();
 		StringBuffer response = new StringBuffer();
+		
+		response.append("Time required : " + (end - start) + "ms\n\n");
 		switch (cgiArgs._outputFormat) {
 		case TEXT:
 			constructTextOutput(scoredDocs, response);

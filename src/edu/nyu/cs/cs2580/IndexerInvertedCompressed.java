@@ -35,7 +35,8 @@ public class IndexerInvertedCompressed extends Indexer {
 	// retrieved as size of the list (if required).
 	Map<String, Map<Integer, Vector<Character>>> _compressedIndex = new LinkedHashMap<String, Map<Integer, Vector<Character>>>();
 
-	Map<String, Map<Integer, Vector<Integer>>> _occuredIndex = new LinkedHashMap<String, Map<Integer, Vector<Integer>>>();
+	Map<String, Map<Integer, Vector<Integer>>> _occuredIndex = new LinkedHashMap<String, Map<Integer, Vector<Integer>>>();	
+	Map<String, Map<Integer, Integer>> termPrevOcc = new HashMap<String, Map<Integer,Integer>>();
 
 	// "data/title.idx";
 	String _docInfoFile = "docinfo.inf";
@@ -55,6 +56,13 @@ public class IndexerInvertedCompressed extends Indexer {
 
 	public static void main(String[] args) {
 		new IndexerInvertedCompressed();
+		
+		//String code = "18E401F41A9704C8219905B929E907B042E01F914C851FDA5CB8269F679226B36CBE2D946CC92F816CCC30C97BC33E9C7F933EC37FFD3ECF01009242AA0100F642E90102E848E501069E4ED20106A450EF0106FE54BF0108D35AC00109ED5BF4010C835BF5010CAD5BF6010D815BF7010EF45CC2010F865CE1010FA565D6010FD365D90112E265E3";
+		//String code = "808382";
+		//Vector<Integer> decoded = getDecoded(code);
+		//for(Integer i : decoded) {
+			//System.out.println(i + ", ");
+		//}
 	}
 
 	public IndexerInvertedCompressed() {
@@ -66,7 +74,7 @@ public class IndexerInvertedCompressed extends Indexer {
 			long start = System.currentTimeMillis();
 			iic._docInfoFile = options._indexPrefix + "/" + _docInfoFile;
 			// _docInfoFile = options._indexPrefix + "/" + _docInfoFile;
-			// iic.constructIndex();
+			//iic.constructIndex();
 			iic.loadIndex();
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
@@ -84,6 +92,8 @@ public class IndexerInvertedCompressed extends Indexer {
 	public IndexerInvertedCompressed(Options options) {
 		super(options);
 		System.out.println("Using Indexer: " + this.getClass().getSimpleName());
+		
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 	}
 
 	@Override
@@ -117,6 +127,7 @@ public class IndexerInvertedCompressed extends Indexer {
 				Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 				// flush the in memory index
 				_compressedIndex = new LinkedHashMap<String, Map<Integer, Vector<Character>>>();
+				termPrevOcc = new HashMap<String, Map<Integer,Integer>>();
 				docInfo = new StringBuffer();
 			}
 
@@ -127,7 +138,7 @@ public class IndexerInvertedCompressed extends Indexer {
 		writeIndexToFile();
 		Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 	}
-
+		
 	private void processDocument(String content, Document doc, int docId) {
 
 		if (content == null || doc == null || docId < 0) {
@@ -137,55 +148,72 @@ public class IndexerInvertedCompressed extends Indexer {
 		CompressionUtility cu = new CompressionUtility();
 		DecompressionUtility du = new DecompressionUtility();
 		Vector<String> terms = Utilities.getStemmed(content);
-		int pos = 0;
+		int currPos = 0;
 		int previousOccurence = 0;
 		int newOccurence = 0;
 		String newOccurenceCoded = "";
 		Vector<Character> positionsEncoded;
+		int sum = 0;
 		for (String t : terms) {
 			t = t.trim();
 			if (t.length() > 0) {
 				if (!_compressedIndex.containsKey(t)) {
 					_compressedIndex.put(t,
 							new LinkedHashMap<Integer, Vector<Character>>());
+					termPrevOcc.put(t, new HashMap<Integer, Integer>());
 				}
 
 				if (_compressedIndex.get(t).containsKey(docId)) {
-
-					Vector<Integer> positionsDecoded = du
-							.decodeByteAlign((_compressedIndex.get(t)
-									.get(docId)));
-					previousOccurence = positionsDecoded.get(positionsDecoded
-							.size() - 1);
-					if ((pos - previousOccurence) > 0) {
-						newOccurence = pos - previousOccurence;
+					
+					int prevPos = termPrevOcc.get(t).get(docId);
+					int currDeltaEncodedPos = currPos - prevPos;
+					newOccurenceCoded = cu.encodeByteAlign(currDeltaEncodedPos);
+					
+					// Map<String, Map<Integer, Vector<Character>>>
+					Vector<Character> encodedPos = _compressedIndex.get(t).get(docId); 
+					for(int i=0 ; i<newOccurenceCoded.length() ; i++) {
+						encodedPos.add(newOccurenceCoded.charAt(i));
+					}					
+					_compressedIndex.get(t).put(docId, encodedPos);
+					
+					termPrevOcc.get(t).put(docId, currPos);
+					
+					
+					/*
+					Vector<Character> encodedOcc = _compressedIndex.get(t).get(docId);
+					Vector<Integer> positionsDecoded = du.decodeByteAlign(encodedOcc);
+					
+					previousOccurence = positionsDecoded.get(positionsDecoded.size() - 1);
+					if ((currPos - previousOccurence) > 0) {
+						newOccurence = currPos - previousOccurence;
 						newOccurenceCoded = cu.encodeByteAlign(newOccurence);
+						previousOccurence = newOccurence;
 					}
 					positionsEncoded = new Vector<Character>();
-					for (int i = 0; i < _compressedIndex.get(t).get(docId)
-							.size(); i++) {
-						positionsEncoded.add(_compressedIndex.get(t).get(docId)
-								.get(i));
+					for (int i = 0; i < encodedOcc.size(); i++) {
+						positionsEncoded.add(encodedOcc.get(i));
 					}
 
 					for (int i = 0; i < newOccurenceCoded.length(); i++) {
 						positionsEncoded.add(newOccurenceCoded.charAt(i));
 					}
+					*/
 
-					_compressedIndex.get(t).put(docId, positionsEncoded);
+					//_compressedIndex.get(t).put(docId, positionsEncoded);
 
 				} else {
 					positionsEncoded = new Vector<Character>();
-					newOccurenceCoded = cu.encodeByteAlign(pos);
+					newOccurenceCoded = cu.encodeByteAlign(currPos);
 					for (int i = 0; i < newOccurenceCoded.length(); i++) {
 						positionsEncoded.add(newOccurenceCoded.charAt(i));
 					}
 					_compressedIndex.get(t).put(docId, positionsEncoded);
+					termPrevOcc.get(t).put(docId, currPos);
 				}
 
 				++_totalTermFrequency;
 			}
-			pos++;
+			currPos++;
 		}
 
 		String uri = doc.baseUri();
@@ -427,6 +455,7 @@ public class IndexerInvertedCompressed extends Indexer {
 			DocumentIndexed dIndexed;
 
 			while ((line = br.readLine()) != null) {
+				//System.out.println("line = " + line);
 				info = line.split(_docInfoDelim);
 
 				int dId = Integer.parseInt(info[0]);
@@ -492,8 +521,8 @@ public class IndexerInvertedCompressed extends Indexer {
 		}
 		
 		// remove duplicate terms in query
-		Set<String> queryProcessed = new TreeSet<String>(
-		Utilities.getStemmed(query._query));
+		//Set<String> queryProcessed = new TreeSet<String>(
+		//Utilities.getStemmed(query._query));
 				
 		if(docid == -1) {
 			// It means this is first call to nextDoc for given query.
@@ -502,6 +531,19 @@ public class IndexerInvertedCompressed extends Indexer {
 			
 			// load necessary indices
 			loadIndex(query);
+			
+			//Map<String, Map<Integer, Vector<Integer>>> _occuredIndex
+			/*Map<Integer, Vector<Integer>> m = _occuredIndex.get("new");
+			int totaldocs = m.keySet().size();
+			System.out.println("total docs = " + totaldocs);
+			Vector<Integer> occ = m.get(80);
+			int noofocc = occ.size();
+			System.out.println("noofocc for docid = 80 is : " + noofocc);
+			for(Integer i : occ) {
+				System.out.print(i + ", ");
+			}
+			
+			System.exit(0);*/
 		}			
 
 		int[] docIds = new int[query._tokens.size()];
@@ -542,7 +584,8 @@ public class IndexerInvertedCompressed extends Indexer {
 		}
 
 		// Return docid. At this point, all the entries in the array are same.
-		return new DocumentIndexed(docIds[0]);
+		//return new DocumentIndexed(docIds[0]);
+		return _documents.get(docIds[0]);
 	}
 
 	public void loadIndex(Query query) {
@@ -557,7 +600,7 @@ public class IndexerInvertedCompressed extends Indexer {
 					loadIndex(qTerm);
 				}
 			}
-		}
+		}		
 	}
 
 	/**
@@ -589,6 +632,7 @@ public class IndexerInvertedCompressed extends Indexer {
 
 					// load index only for the given term
 					if (token.equals(term)) {
+						
 						// create new map entry for current term
 						Map<Integer, Vector<Integer>> docInfoRaw = new HashMap<Integer, Vector<Integer>>();
 
@@ -597,12 +641,18 @@ public class IndexerInvertedCompressed extends Indexer {
 						for (String doc : docInfo) {
 							String[] doc_count = doc.split(_docCountDelim);
 							int docId = Integer.valueOf(doc_count[0]);
+							
+							if(token.equals("new") && docId == 80) {
+								System.out.println("");
+							}
 
 							if (!docInfoRaw.containsKey(docId)) {
 
 								String allPositions = doc_count[1];
+								
+								Vector<Integer> occurrencesList = getDecoded(allPositions);
 
-								positionsEncoded = new Vector<Character>();
+								/*positionsEncoded = new Vector<Character>();
 								if (allPositions != null
 										&& !allPositions.equals("")) {
 									for (int i = 0; i < allPositions.length(); i++) {
@@ -620,7 +670,7 @@ public class IndexerInvertedCompressed extends Indexer {
 									current = decodedOccurrences.get(i) + prev;
 									occurrencesList.add(current);
 									prev = current;
-								}
+								}*/
 
 								docInfoRaw.put(docId, occurrencesList);
 
@@ -642,6 +692,36 @@ public class IndexerInvertedCompressed extends Indexer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	private static Vector<Integer> getDecoded(String encodedPositions) {
+		
+		Vector<Character> positionsEncoded = new Vector<Character>();
+		if (encodedPositions != null
+				&& !encodedPositions.equals("")) {
+			for (int i = 0; i < encodedPositions.length(); i++) {
+				positionsEncoded.add(encodedPositions
+						.charAt(i));
+			}
+		}
+
+		DecompressionUtility du = new DecompressionUtility();
+		Vector<Integer> decodedOccurrences = du
+				.decodeByteAlign(positionsEncoded);
+		int prev = 0;
+		int current = 0;
+		Vector<Integer> occurrencesList = new Vector<Integer>();
+		for (int i = 0; i < decodedOccurrences.size(); i++) {
+			current = decodedOccurrences.get(i) + prev;
+			occurrencesList.add(current);
+			prev = current;
+			//occurrencesList.add(decodedOccurrences.get(i));
+		}
+		
+		return occurrencesList;
+		
+		// TODO Auto-generated method stub
+		//return null;
 	}
 
 	/**
@@ -694,7 +774,7 @@ public class IndexerInvertedCompressed extends Indexer {
 					Integer[] occurrencesList = new Integer[occurrencesListSorted.size()];
 					occurrencesListSorted.toArray(occurrencesList);
 
-					occNo = IndexerUtils.search(currentOccurrence, occurrencesList, false);
+					occNo = IndexerUtils.search(currentOccurrence, occurrencesList, true);
 					occurrences[qTermNo++] = occNo;
 					
 					if(occNo == -1) {
@@ -747,12 +827,12 @@ public class IndexerInvertedCompressed extends Indexer {
 						occurrencesListSorted.toArray(occurrencesList);
 
 						occNo = IndexerUtils.search(
-								currentOccurrence, occurrencesList, false);
+								currentOccurrence, occurrencesList, true);
 						occurrences[qTermNo++] = occNo;
 						
 						if(occNo == -1) {
 							break;
-						}
+						}										
 					}
 				}
 
