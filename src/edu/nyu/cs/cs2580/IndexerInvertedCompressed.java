@@ -37,6 +37,9 @@ public class IndexerInvertedCompressed extends Indexer {
 
 	Map<String, Map<Integer, Vector<Integer>>> _occuredIndex = new LinkedHashMap<String, Map<Integer, Vector<Integer>>>();	
 	Map<String, Map<Integer, Integer>> termPrevOcc = new HashMap<String, Map<Integer,Integer>>();
+	
+	final int maxNoOfEntriesInMap = 200;
+	int noOfEntriesInmap = 0;
 
 	// "data/title.idx";
 	String _docInfoFile = "docinfo.inf";
@@ -591,6 +594,13 @@ public class IndexerInvertedCompressed extends Indexer {
 	public void loadIndex(Query query) {
 		
 		query.processQuery();
+		
+		// flush the in-memory map if it exceeds its limit of max entries
+		if(noOfEntriesInmap > maxNoOfEntriesInMap) {
+			_occuredIndex.clear();
+			noOfEntriesInmap = 0;
+		}
+		
 		SortedSet<String> qTerms = new TreeSet<String>();
 		qTerms.addAll(Utilities.getStemmed(query._query));
 		
@@ -642,10 +652,6 @@ public class IndexerInvertedCompressed extends Indexer {
 							String[] doc_count = doc.split(_docCountDelim);
 							int docId = Integer.valueOf(doc_count[0]);
 							
-							if(token.equals("new") && docId == 80) {
-								System.out.println("");
-							}
-
 							if (!docInfoRaw.containsKey(docId)) {
 
 								String allPositions = doc_count[1];
@@ -674,16 +680,17 @@ public class IndexerInvertedCompressed extends Indexer {
 
 								docInfoRaw.put(docId, occurrencesList);
 
-								_occuredIndex.put(token, docInfoRaw);
+								_occuredIndex.put(token, docInfoRaw);								
 							}
 						}
-
+						
+						noOfEntriesInmap++;
 						break;
 					}
 				}
 			}
 
-			// System.out.println("Loading done...");
+			System.out.println("Loading done...");
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block

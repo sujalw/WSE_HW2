@@ -34,6 +34,9 @@ public class IndexerInvertedOccurrence extends Indexer {
 	// There is no need to maintain the no. of occurrences as that can be retrieved as size of the list (if required). 	
 	Map<String, Map<Integer, Vector<Integer>>> _occuredIndex = 
 			new LinkedHashMap<String, Map<Integer,Vector<Integer>>>();
+	
+	final int maxNoOfEntriesInMap = 5;
+	int noOfEntriesInmap = 0;
 
 	String _docInfoFile = "docinfo.inf";
 	// Maximum no. of files to process in memory at a time
@@ -52,7 +55,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 	public Map<String, Integer> _docIdUriMap = new HashMap<String, Integer>();
 
 	public static void main(String[] args) {
-		new IndexerInvertedOccurrence();
+		new IndexerInvertedOccurrence();		
 	}
 	
 	public IndexerInvertedOccurrence() {
@@ -60,8 +63,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 			
 			Options options = new Options("conf/engine.conf");
 			IndexerInvertedOccurrence iio = new IndexerInvertedOccurrence(options);
-			
-			
+						
 			long start = System.currentTimeMillis();
 			iio._docInfoFile = options._indexPrefix + "/" + _docInfoFile;
 			//iio.constructIndex();
@@ -532,6 +534,13 @@ public class IndexerInvertedOccurrence extends Indexer {
 		public void loadIndex(Query query) {
 			
 			query.processQuery();
+			
+			// flush the in-memory map if it exceeds its limit of max entries
+			if(noOfEntriesInmap > maxNoOfEntriesInMap) {
+				_occuredIndex.clear();
+				noOfEntriesInmap = 0;
+			}
+			
 			SortedSet<String> qTerms = new TreeSet<String>();
 			qTerms.addAll(Utilities.getStemmed(query._query));
 			
@@ -597,6 +606,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 							_occuredIndex.put(token, docInfoMap);
 							
+							noOfEntriesInmap++;
 							break;
 						}						
 					}
@@ -682,6 +692,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 							if (!_occuredIndex.containsKey(term)) {
 								_occuredIndex.put(term,
 										new HashMap<Integer, Vector<Integer>>());
+								noOfEntriesInmap++;
 							}
 
 							// add phrase occurrences info to the index

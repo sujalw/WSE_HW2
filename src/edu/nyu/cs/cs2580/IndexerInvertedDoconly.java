@@ -46,6 +46,9 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 	String _docInfoFile = "docinfo.inf";// "data/title.idx";
 
 	int _intermediateIndexFiles = 0;
+	
+	final int maxNoOfEntriesInMap = 200;
+	int noOfEntriesInmap = 0;
 
 	Vector<String> _docTitles = new Vector<String>();
 	
@@ -372,6 +375,13 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		}*/
 		
 		query.processQuery();
+		
+		// flush the in-memory map if it exceeds its limit of max entries
+		if(noOfEntriesInmap > maxNoOfEntriesInMap) {
+			_invertedIndex.clear();
+			noOfEntriesInmap = 0;
+		}
+		
 		SortedSet<String> qTerms = new TreeSet<String>();
 		qTerms.addAll(Utilities.getStemmed(query._query));
 		
@@ -421,6 +431,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 							docInfoMap.put(Integer.valueOf(doc_count[0]), Integer.valueOf(doc_count[1]));
 						}
 						
+						noOfEntriesInmap++;
 						break;
 					}
 				}
